@@ -1,12 +1,10 @@
 <?php
+require_once (__DIR__ .'/getQuery.php');
 
 if($_REQUEST['DOMAIN'] != 'b24-e77y0j.bitrix24.ru') die();
 
 function tula()
 {
-    require (__DIR__ .'/crest.php');
-    require (__DIR__ .'/getQuery.php');
-
     $deal_id = $_REQUEST['deal_id'];
 
     global $deal, $contact, $tasks;
@@ -18,29 +16,14 @@ function tula()
         'ID' => $deal['result']['CONTACT_ID'],
     ]);
 
-    $tasks = getQuery('tasks.task.list', [
-        'filter' => [
-            'UF_CRM_TASK' => 'D_' . $deal['result']['ID'],
-        ]
-    ]);
-
 }
 tula();
-// foreach($tasks['result']['tasks'] as $task){
-//     var_dump($task);
-// }
-//var_dump($deal);
+
 ufa($deal, $contact, $tasks);
-//file_put_contents(__DIR__ . '/log.txt', json_decode($deal) . PHP_EOL, FILE_APPEND);
-//file_put_contents(__DIR__ . '/log.txt', json_decode($contact) . PHP_EOL, FILE_APPEND);
 
 function ufa($deal, $contact, $tasks)
 {
     $_REQUEST['DOMAIN'] = 'stopzaym.bitrix24.ru';
-
-    require (__DIR__ .'/crestUfa.php');
-    require (__DIR__ .'/getQuery.php');
-
 
     $contact_add = getQueryUfa('crm.contact.add', [
         'fields' => [
@@ -52,7 +35,6 @@ function ufa($deal, $contact, $tasks)
             'ADDRESS' => $contact['result']['ADDRESS'],
         ],
     ]);
-
 
     $deal_add = getQueryUfa('crm.deal.add', [
         'fields' => [
@@ -74,19 +56,7 @@ function ufa($deal, $contact, $tasks)
         ],
     ]);
 
-// var_dump($deal_add);
-sleep(2);
-    foreach($tasks['result']['tasks'] as $task){
-        $task_add = getQueryUfa('tasks.task.add', [
-           'fields' => [
-               'TITLE' => $task['title'],
-               'DESCRIPTION' => $task['description'],
-               'UF_CRM_TASK' => 'D_' . $deal_add['result'],
-               'RESPONSIBLE_ID' => 17950,
-           ],
-        ]);
-        var_dump($task_add);
-    }
+    
 }
 
 

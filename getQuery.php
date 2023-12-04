@@ -1,6 +1,8 @@
 <?
+require_once (__DIR__ .'/crestUfa.php');
+require_once (__DIR__ .'/crest.php');
 
-if($_REQUEST['DOMAIN'] == 'b24-e77y0j.bitrix24.ru') {
+
 
     function getQuery($method, $params)
     {
@@ -13,7 +15,7 @@ if($_REQUEST['DOMAIN'] == 'b24-e77y0j.bitrix24.ru') {
 
         return $result;
     }
-} else {
+
     function getQueryUfa($method, $params)
     {
         $result = CRestUfa::call($method, $params);
@@ -25,7 +27,7 @@ if($_REQUEST['DOMAIN'] == 'b24-e77y0j.bitrix24.ru') {
 
         return $result;
     }
-}
+
 
 
 //function getQueryBatch($batch_list){
