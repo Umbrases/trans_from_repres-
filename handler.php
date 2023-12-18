@@ -5,6 +5,9 @@ if(empty($_REQUEST['DOMAIN']) && $_REQUEST['DOMAIN'] != 'b24-e77y0j.bitrix24.ru'
 require_once (__DIR__ .'/crest_tula.php');
 require_once (__DIR__ .'/crest_ufa.php');
 require_once (__DIR__ .'/getQuery.php');
+require_once (__DIR__ .'/SafeMySQL.php');
+
+$db = new SafeMySQL();
 
 $deal_id = $_REQUEST['deal_id'];
 
@@ -27,7 +30,6 @@ $result = getQueryBatch('CRestTula', $batch_list);
 
 $deal = $result['result']['result']['deal'];
 $contact = $result['result']['result']['contact'];
-var_dump($contact);
 
 $date = explode(' ', $contact['UF_CRM_6333543A28B78']);
 
@@ -82,8 +84,8 @@ $batch_list_ufa = [
 				'TITLE' => $deal['TITLE'],
 	            'CONTACT_ID' => '$result[contact]',
 	            'CATEGORY_ID' => 58,
-	            'ASSIGNED_BY_ID' => 17950,
-	            'OBSERVER' => 17950,
+	            'ASSIGNED_BY_ID' => 208,
+	            'UF_CRM_1701760298' => 1,
 	            'UF_CRM_1653545949629' => $deal['UF_CRM_6333543A7DBA0'],
 	            'COMMENTS' => $deal['COMMENTS'],
 	            'UF_CRM_5D53E58571DB8' => $deal['UF_CRM_6333543AAB9A1'],
@@ -100,3 +102,6 @@ $batch_list_ufa = [
 ];
 
 $ufa = getQueryBatch('CRestUfa', $batch_list_ufa);
+
+$sql_task = "INSERT INTO det_deal SET deal_tula = ?i, deal_ufa = ?i";
+$db->query($sql_task, (int)$deal_id, (int)$ufa['result']['result']['deal']);
