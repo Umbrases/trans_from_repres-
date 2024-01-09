@@ -28,6 +28,28 @@ $batch_list = [
 
 $result = getQueryBatch('CRestTula', $batch_list);
 
+if(!empty($_REQUEST['stage'])){
+	$sql_deal_id = $db->getRow("SELECT * FROM det_deal where deal_tula = ?i", (int)$deal_id);
+	
+	if(!empty($sql_deal_id)){
+		if($_REQUEST['stage'] == 'rd'){
+			$stage = 'C58:PREPARATION';
+		} elseif($_REQUEST['stage'] == 'ri'){
+			$stage = 'C58:PREPAYMENT_INVOIC';
+		}
+
+		$method_query = getQuery('CRestUfa', 'crm.deal.update',[
+			'ID' => $sql_deal_id['deal_ufa'],
+			'fields' => [
+				'STAGE_ID' => $stage,
+		],]);
+		die();
+	}
+}
+
+
+
+
 $deal = $result['result']['result']['deal'];
 $contact = $result['result']['result']['contact'];
 
@@ -86,7 +108,7 @@ $batch_list_ufa = [
 	            'CATEGORY_ID' => 58,
 	            'ASSIGNED_BY_ID' => 208,
 	            'UF_CRM_1701760298' => 1,
-	            'UF_CRM_1653545949629' => $deal['UF_CRM_6333543A7DBA0'],
+	            'UF_CRM_1653545949629' => $contact['UF_CRM_62D05D7F42F09'],
 	            'COMMENTS' => $deal['COMMENTS'],
 	            'UF_CRM_5D53E58571DB8' => $deal['UF_CRM_6333543AAB9A1'],
 	            'UF_CRM_1627447542' => $deal['UF_CRM_1664374736018'],
