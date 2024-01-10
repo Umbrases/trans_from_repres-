@@ -9,7 +9,7 @@ $db = new SafeMySQL();
 
 $event = $_REQUEST['event'];
 
-writeToLog($_REQUEST);
+// writeToLog($_REQUEST);
 
 
 if ($event == 'ONTASKADD' || $event == 'ONTASKUPDATE') {
@@ -128,7 +128,7 @@ if ($event == 'ONTASKCOMMENTADD' || $event == 'ONTASKADD'|| $event == 'ONTASKUPD
 			}
 		} 
 	} elseif ($event == 'ONTASKUPDATE') {
-		// if ($task['result']['task']['changedBy'] != 17950){
+		if ($task['result']['task']['changedBy'] != 17950){
 
 			if(!empty($sql_ufa_id['task_ufa'])){
 				$method_query = getQuery('CRestTula', 'tasks.task.update', [
@@ -142,15 +142,36 @@ if ($event == 'ONTASKCOMMENTADD' || $event == 'ONTASKADD'|| $event == 'ONTASKUPD
 					]]);
 			} else {
 				if ($task['result']['task']['responsibleId'] == 23286){
+					$sql_task = "INSERT INTO det_task SET deal_tula = ?i, deal_ufa = ?i, task_ufa = ?i";
+					$db->query($sql_task, (int)$sql_deal_ufa_id['deal_tula'], (int)$deal_id, (int)$tasks);
+
 					if (empty($sql_ufa_id['task_tula'])){
-						//
+						$RESPONSIBLE_ID = getQuery('CRestTula', 'crm.deal.get', [
+							'ID' => $sql_deal_ufa_id['deal_tula'],
+						]);
+		
+						$method_query = getQuery('CRestTula', 'tasks.task.add', [
+							'fields' => [
+								'TITLE' => $task['result']['task']['title'],
+								'DESCRIPTION' => $task['result']['task']['description'],
+								'RESPONSIBLE_ID' => $RESPONSIBLE_ID['result']['ASSIGNED_BY_ID'],
+								'CREATED_BY' => 1125,
+								'UF_CRM_TASK' => ['D_' . $sql_deal_ufa_id['deal_tula']],
+								'START_DATE_PLAN' => $task['result']['task']['start_date_plan'],
+								'DEADLINE' => $task['result']['task']['deadline'],
+								'UF_TASK_WEBDAV_FILES' => $file_task_tula_id,
+								'ALLOW_CHANGE_DEADLINE' => $task['result']['task']['allowChangeDeadline'],
+							],]);
+						$sql_task = "UPDATE det_task SET task_tula = ?i";
+						$db->query($sql_task, (int)$method_query['result']['task']['id']);
 					}
 				}
 			}
-		// }
+		}
 	}	
 }
 
+// sleep(2);
 
 
 
@@ -158,11 +179,12 @@ if ($event == 'ONTASKCOMMENTADD' || $event == 'ONTASKADD'|| $event == 'ONTASKUPD
 
 
 
-function writeToLog($data) {
-	$log = "\n------------------------\n";
-	$log .= date("Y.m.d G:i:s") . "\n";
-	$log .= print_r($data, 1);
-	$log .= "\n------------------------\n";
-	file_put_contents(getcwd() . '/hook.log', $log, FILE_APPEND);
-	return true;
-} 
+
+// function writeToLog($data) {
+// 	$log = "\n------------------------\n";
+// 	$log .= date("Y.m.d G:i:s") . "\n";
+// 	$log .= print_r($data, 1);
+// 	$log .= "\n------------------------\n";
+// 	file_put_contents(getcwd() . '/hook.log', $log, FILE_APPEND);
+// 	return true;
+// } 
