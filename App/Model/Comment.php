@@ -1,11 +1,15 @@
 <?php
 
+namespace App\Model;
+
+use App\Model\Query;
+
 class Comment
 {
 
     public function Create($sql_id, $task_message, $file_id, $db, $tasks, $sql_task, $author_id, $method)
     {
-        $method_query = getQuery($method, 'task.commentitem.add', [
+        $method_query = Query::getQuery($method, 'task.commentitem.add', [
             'TASKID' => $sql_id,
             'fields' => [
                 'AUTHOR_ID' => $author_id,
@@ -21,7 +25,7 @@ class Comment
 
     public function getComment($method)
     {
-        $task_message = getQuery($method, 'task.commentitem.get', [
+        $task_message = Query::getQuery($method, 'task.commentitem.get', [
             'TASKID' => $_REQUEST['data']['FIELDS_AFTER']['TASK_ID'],
             'ITEMID' => $_REQUEST['data']['FIELDS_AFTER']['ID'],
         ]);

@@ -1,25 +1,23 @@
 <?php
-require_once(__DIR__ . '/crest_tula.php');
-require_once(__DIR__ . '/crest_ufa.php');
-require_once(__DIR__ . '/getQuery.php');
-require_once(__DIR__ . '/SafeMySQL.php');
-require_once(__DIR__ . '/Task.php');
-require_once(__DIR__ . '/UpdateTask.php');
-require_once(__DIR__ . '/Comment.php');
+namespace App\Controller;
 
-$db = new SafeMySQL();
+use App\Model\Comment;
+use App\Model\Task;
+use App\Model\UpdateTask;
+use App\Model\CRestTula;
+use App\Model\CRestUfa;
+use App\Model\SafeMySQL;
+use App\Model\Query;
 
-$ufa = new Ufa();
-$ufa->Event($db);
+$db = SafeMySQL::class;
+
+Ufa::Event($db);
 
 class Ufa
 {
 
     public function Event($db)
     {
-        $Task = new Task();
-        $Comment = new Comment();
-        $UpdateTask = new UpdateTask();
         $event = $_REQUEST['event'];
         $method = 'CRestUfa';
         $method_tula = 'CRestTula';
@@ -31,34 +29,35 @@ class Ufa
             $tasks = $_REQUEST['data']['FIELDS_AFTER']['TASK_ID'];
         }
 
-        $task = $Task->getTask($method, $tasks);
+        $task = Task::getTask($method, $tasks);
 
         $deal_id = trim($task['result']['task']['ufCrmTask'][0], 'D_');
 
-        $task_message = $Comment->getComment($method);
+        $task_message = Comment::getComment($method);
 
         if (!empty($task['result']['task']['ufTaskWebdavFiles'])) {
             foreach ($task['result']['task']['ufTaskWebdavFiles'] as $taskFile) {
-                $file_task = getQuery($method, 'disk.attachedObject.get', [
+                $file_task = Query::getQuery($method, 'disk.attachedObject.get', [
                     'id' => $taskFile,
                 ]);
 
-                $file_task = file_get_contents(str_replace(' ', '%20', $file_task['result']['DOWNLOAD_URL']));
+                $file_task_content = file_get_contents(str_replace(' ', '%20', $file_task['result']['DOWNLOAD_URL']));
 
-                $file_upload_task = $Task->uploadFile($method_tula, $folder_id, $file_task);
+                $file_upload_task = Task::uploadFile($method_tula, $folder_id,  $file_task_content, $file_task);
+
                 $file_task_id[] .= 'n' . $file_upload_task['result']['ID'];
             }
         }
 
         if (!empty($task_message['result']['ATTACHED_OBJECTS'])) {
             foreach ($task_message['result']['ATTACHED_OBJECTS'] as $attached) {
-                $file_message = getQuery($method, 'disk.file.get', [
+                $file_message = Query::getQuery($method, 'disk.file.get', [
                     'id' => $attached['FILE_ID'],
                 ]);
 
-                $file_message = file_get_contents(str_replace(' ', '%20', $file_message['result']['DOWNLOAD_URL']));
+                $file_message_content = file_get_contents(str_replace(' ', '%20', $file_message['result']['DOWNLOAD_URL']));
 
-                $file_upload_message = $Task->uploadFile($method_tula, $folder_id, $file_message);
+                $file_upload_message = Task::uploadFile($method_tula, $folder_id, $file_message_content, $file_message);
                 $file_message_id[] .= 'n' . $file_upload_message['result']['ID'];
             }
         }
@@ -68,7 +67,7 @@ class Ufa
             $sql_ufa_id = $db->getRow("SELECT * FROM det_task where task_ufa = ?i", (int)$tasks);
             $sql_deal_ufa_id = $db->getRow("SELECT * FROM det_deal where deal_ufa = ?i", (int)$deal_id);
 
-            $responsible_id = getQuery($method_tula, 'crm.deal.get', [
+            $responsible_id = Query::getQuery($method_tula, 'crm.deal.get', [
                 'ID' => $sql_deal_ufa_id['deal_tula'],
             ]);
             $create_by = 1125;
@@ -84,7 +83,7 @@ class Ufa
 
                             if (count($sql_ufa_count) == 0){
                                 $db->query($sql_task, (int)$deal_id, (int)$sql_deal_ufa_id['deal_tula'], (int)$tasks);
-                                $Task->Create($task['result']['task'], $sql_deal_ufa_id['deal_tula'], $file_task_id, $db, $tasks, $responsible_id['result']['ASSIGNED_BY_ID'], $create_by, $method_tula, $sql_update_task);
+                                Task::Create($task['result']['task'], $sql_deal_ufa_id['deal_tula'], $file_task_id, $db, $tasks, $responsible_id['result']['ASSIGNED_BY_ID'], $create_by, $method_tula, $sql_update_task);
                             }
                         }
                     }
@@ -95,7 +94,7 @@ class Ufa
                     if (!empty($sql_ufa_id['task_tula'])) {
                         if (empty($sql_ufa)) {
                             if (strpos($task_message['result']['POST_MESSAGE'], 'вы добавлены наблюдателем') == false || strpos($task_message['result']['POST_MESSAGE'], 'вы назначены ответственным') == false) {
-                                $Comment->Create($sql_ufa_id['task_tula'], $task_message['result'], $file_message_id, $db, $tasks, $sql_task, $author_id, $method_tula);
+                                Comment::Create($sql_ufa_id['task_tula'], $task_message['result'], $file_message_id, $db, $tasks, $sql_task, $author_id, $method_tula);
                             }
                         }
                     }
@@ -106,14 +105,14 @@ class Ufa
 
                     if ($task['result']['task']['changedBy'] != $changed_by) {
                         if (!empty($sql_city_id)) {
-                            $UpdateTask->Update($task['result']['task'], $task_message['result']['is_task_result'], $method, $sql_ufa_id['task_tula']);
+                            UpdateTask::Update($task['result']['task'], $task_message['result']['is_task_result'], $method, $sql_ufa_id['task_tula']);
                         } else {
                             if ($task['result']['task']['responsibleId'] == $changed_by) {
                                 $sql_ufa_count = $db->getAll("SELECT * FROM det_task where task_ufa = ?i", (int)$tasks);
 
                                 if (count($sql_ufa_count) == 0) {
                                     $db->query($sql_insert_task, (int)$deal_id, (int)$sql_deal_ufa_id['deal_tula'], (int)$tasks);
-                                    $Task->Create($task['result']['task'], $sql_deal_ufa_id['deal_tula'], $file_task_id, $db, $tasks, $responsible_id['result']['ASSIGNED_BY_ID'], $create_by, $method_tula, $sql_update_task);
+                                    Task::Create($task['result']['task'], $sql_deal_ufa_id['deal_tula'], $file_task_id, $db, $tasks, $responsible_id['result']['ASSIGNED_BY_ID'], $create_by, $method_tula, $sql_update_task);
                                 }
                             }
                         }
