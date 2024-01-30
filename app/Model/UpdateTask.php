@@ -7,9 +7,9 @@ use App\Model\Query;
 class UpdateTask
 {
 
-    public function Update($task, $task_message, $method, $sql_city_id)
+    public function updateTask($task, $task_message, $method, $sql_city_id)
     {
-        Query::getQuery($method, 'tasks.task.update', [
+        (new Query)->getQuery($method, 'tasks.task.update', [
             'taskId' => $sql_city_id,
             'fields' => [
                 'TITLE' => $task['title'],

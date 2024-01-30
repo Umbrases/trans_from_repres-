@@ -2,9 +2,9 @@
 
 if(empty($_REQUEST['DOMAIN']) && $_REQUEST['DOMAIN'] != 'b24-e77y0j.bitrix24.ru') die();
 
-require_once (__DIR__ .'/crest_tula.php');
-require_once (__DIR__ .'/crest_ufa.php');
-require_once (__DIR__ .'/getQuery.php');
+require_once (__DIR__ . '/CRestTula.php');
+require_once (__DIR__ . '/CRestUfa.php');
+require_once (__DIR__ . '/Query.php');
 require_once (__DIR__ .'/SafeMySQL.php');
 
 $db = new SafeMySQL();

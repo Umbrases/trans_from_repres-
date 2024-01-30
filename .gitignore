@@ -1,0 +1,8 @@
+/vendor/
+/logs/
+/.idea
+hook.log
+log.txt
+/app/model/SafeMySQL.php
+/app/model/crest_ufa.php
+/app/model/crest_tula.php

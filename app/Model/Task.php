@@ -7,9 +7,9 @@ use App\Model\Query;
 class Task
 {
 
-    public function Create($task, $sql_deal_id, $file_task_tula_id, $db, $tasks, $responsible_id, $create_by, $method, $sql_update_task)
+    public function setTask($task, $sql_deal_id, $file_task_tula_id, $db, $tasks, $responsible_id, $create_by, $method, $sql_update_task)
     {
-        $method_query = Query::getQuery($method, 'tasks.task.add', [
+        $method_query = (new Query)->getQuery($method, 'tasks.task.add', [
             'fields' => [
                 'TITLE' => $task['title'],
                 'DESCRIPTION' => $task['description'],
@@ -29,7 +29,7 @@ class Task
 
     public function getTask($method, $tasks)
     {
-        $task = Query::getQuery($method, 'tasks.task.get', [
+        $task = (new Query)->getQuery($method, 'tasks.task.get', [
             'taskId' => $tasks,
             'select' => [
                 'TITLE', 'DESCRIPTION', 'UF_CRM_TASK', 'DEADLINE', 'START_DATE_PLAN', 'RESPONSIBLE_ID', 'CHANGED_BY', 'STATUS', 'ALLOW_CHANGE_DEADLINE'
@@ -39,9 +39,9 @@ class Task
         return $task;
     }
 
-    public function uploadFile($method, $folder_id, $file_content, $file)
+    public function setFile($method, $folder_id, $file_content, $file)
     {
-        $file_upload_task = Query::getQuery($method, 'disk.folder.uploadfile', [
+        $file_upload_task = (new Query)->getQuery($method, 'disk.folder.uploadfile', [
             'id' => $folder_id,
             'data' => [
                 'NAME' => $file['result']['NAME']
