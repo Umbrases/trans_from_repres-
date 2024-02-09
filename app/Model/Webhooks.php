@@ -2,113 +2,171 @@
 
 namespace App\Model;
 
+use App\Service\CommentService;
+use App\Service\TaskService;
+use SafeMySQL;
+
 class Webhooks
 {
 
-    public function setOnTask($event, $method_from, $method_before, $folder_id, $tasks, $task_message, $city)
+    private TaskService $taskService;
+    private CommentService $commentService;
+    private QueryHelper $queryHelper;
+
+    private SafeMySQL $safeMySQL;
+
+    public function __construct()
     {
-        $db = SafeMySQL::class;
-        $task = (new Task)->getTask($method_from, $tasks);
+        $this->taskService = new TaskService;
+        $this->queryHelper = new QueryHelper;
+        $this->commentService = new CommentService;
+        $this->safeMySQL = new SafeMySQL;
+    }
 
-        $deal_id = trim($task['result']['task']['ufCrmTask'][0], 'D_');
+    public function setOnTask($event, $methodFrom, $methodBefore, $folderId, $taskId, $taskMessage, $city): void
+    {
+        $task = $this->taskService->getTask($methodFrom, $taskId);
 
+        $dealId = $task->getDealId();
+
+        $fileTaskIds = [];
+        $fileMessageId = [];
         if (!empty($task['result']['task']['ufTaskWebdavFiles'])) {
             foreach ($task['result']['task']['ufTaskWebdavFiles'] as $taskFile) {
-                $file_task = (new Query)->getQuery($method_from, 'disk.attachedObject.get', [
+                $fileTask = $this->queryHelper->getQuery($methodFrom, 'disk.attachedObject.get', [
                     'id' => $taskFile,
                 ]);
 
-                $file_task_content = file_get_contents(str_replace(' ', '%20', $file_task['result']['DOWNLOAD_URL']));
+                $fileTaskContent = file_get_contents(str_replace(' ', '%20', $fileTask['result']['DOWNLOAD_URL']));
 
-                $file_upload_task = (new Task)->setFile($method_before, $folder_id, $file_task_content, $file_task);
+                $fileUploadTask = $this->taskService->setFile(
+                    $methodBefore,
+                    $folderId,
+                    $fileTaskContent,
+                    $fileTask
+                );
 
-                $file_task_id[] .= 'n' . $file_upload_task['result']['ID'];
+
+
+                $fileTaskIds[] .= 'n' . $fileUploadTask['result']['ID'];
             }
         }
 
-        if (!empty($task_message['result']['ATTACHED_OBJECTS'])) {
-            foreach ($task_message['result']['ATTACHED_OBJECTS'] as $attached) {
-                $file_message = (new Query)->getQuery($method_from, 'disk.file.get', [
+        if (!empty($taskMessage['result']['ATTACHED_OBJECTS'])) {
+            foreach ($taskMessage['result']['ATTACHED_OBJECTS'] as $attached) {
+                $fileMessage = $this->queryHelper->getQuery($methodFrom, 'disk.file.get', [
                     'id' => $attached['FILE_ID'],
                 ]);
 
-                $file_message_content = file_get_contents(str_replace(' ', '%20', $file_message['result']['DOWNLOAD_URL']));
+                $fileMessageContent = file_get_contents(str_replace(' ', '%20', $fileMessage['result']['DOWNLOAD_URL']));
 
-                $file_upload_message = (new Task)->setFile($method_before, $folder_id, $file_message_content, $file_message);
-                $file_message_id[] .= 'n' . $file_upload_message['result']['ID'];
+                $fileUploadMessage = $this->taskService->setFile(
+                    $methodBefore,
+                    $folderId,
+                    $fileMessageContent,
+                    $fileMessage
+                );
+                $fileMessageId[] .= 'n' . $fileUploadMessage['result']['ID'];
             }
         }
 
-        if ($event == 'ONTASKCOMMENTADD' || $event == 'ONTASKADD' || $event == 'ONTASKUPDATE') {
-            if ($city == "tula") {
-                $sql_from = $db->getRow("SELECT * FROM det_comment where comment_tula = ?i", (int)$task_message['result']['ID']);
-                $sql_before_id = $db->getRow("SELECT task_ufa FROM det_task where task_tula = ?i", (int)$tasks);
-                $sql_deal_before_id = $db->getRow("SELECT deal_ufa FROM det_deal where deal_tula = ?i", (int)$deal_id);
+        if ($event !== 'ONTASKCOMMENTADD' || $event !== 'ONTASKADD' || $event !== 'ONTASKUPDATE') return;
 
-                $responsible_id = 13348;
-                $create_by = 23286;
-                $task_reponsible_id = 1125;
-                $author_id = 23286;
 
-                $sql_task = "INSERT INTO det_task SET deal_ufa = ?i, deal_tula = ?i, task_tula = ?i";
-                $sql_task_comment = "INSERT INTO det_comment SET task_tula = ?i, task_ufa = ?i, comment_tula = ?i, comment_ufa = ?i";
-                $sql_update_task = "UPDATE det_task SET task_ufa = ?i WHERE task_tula = ?i";
-                $sql_count = "SELECT * FROM det_task where task_tula = ?i";
+        $columnSelectTask = $city == "tula" ? 'task_ufa' : 'task_tula';
+        $columnWhereTask = $city == "tula" ? 'task_tula' : 'task_ufa';
+        $columnSelectDeal = $city == "tula" ? 'deal_ufa' : 'deal_tula';
+        $columnWhereDeal = $city == "tula" ? 'deal_tula' : 'deal_ufa';
+        $columnSelectComment = $city == "tula" ? 'comment_ufa' : 'comment_tula';
+        $columnWhereComment = $city == "tula" ? 'comment_tula' : 'comment_ufa';
+
+        $sqlFrom = $this->safeMySQL->getRow("SELECT * FROM det_comment where {$columnWhereComment} = ?i", (int)$taskMessage['result']['ID']);
+        $sqlBeforeId = $this->safeMySQL->getRow("SELECT {$columnSelectTask} FROM det_task where {$columnWhereTask} = ?i", (int)$taskId);
+        $sqlDealBeforeId = $this->safeMySQL->getRow("SELECT {$columnSelectDeal} FROM det_deal where {$columnWhereDeal} = ?i", $dealId);
+        $sqlTask = "INSERT INTO det_task SET {$columnSelectDeal} = ?i, {$columnWhereDeal} = ?i, {$columnWhereTask} = ?i";
+        $sqlTaskComment = "INSERT INTO det_comment SET {$columnWhereTask} = ?i, {$columnSelectTask} = ?i, {$columnWhereComment} = ?i, {$columnSelectComment} = ?i";
+        $sqlUpdateTask = "UPDATE det_task SET {$columnSelectTask} = ?i WHERE {$columnWhereTask} = ?i";
+        $sqlCount = "SELECT * FROM det_task where {$columnWhereTask} = ?i";
+
+        $columnResponsibleId = $city == "tula" ? 13348 : $this->queryHelper->getQuery($methodBefore,
+            'crm.deal.get', [
+                'ID' => $sqlDealBeforeId,
+            ])['result']['ASSIGNED_BY_ID'];
+        $columnCreateBy = $city == "tula" ? 23286 : 1125;
+        $columnTaskResponsibleID = $city == "tula" ? 1125 : 23286;
+        $columnAuthorId = $city == "tula" ? 23286 : 1125;
+
+        if (empty($sqlDealBeforeId)) return;
+
+        if ($event == 'ONTASKADD') {
+            if (!empty($sqlBeforeId)) if ($task->getResponsibleId() !== $columnTaskResponsibleID) return;
+
+            $sqlCityCount = $this->safeMySQL->getAll($sqlCount, (int)$taskId);
+
+            if (count($sqlCityCount) !== 0) return;
+
+            $this->safeMySQL->query($sqlTask, $dealId, (int)$sqlDealBeforeId, (int)$taskId);
+            $this->taskService->setTask(
+                $task['result']['task'],
+                $sqlDealBeforeId,
+                $fileTaskIds,
+                $this->safeMySQL,
+                $taskId,
+                $columnResponsibleId,
+                $columnCreateBy,
+                $methodBefore,
+                $sqlUpdateTask
+            );
+        } elseif ($event == 'ONTASKCOMMENTADD') {
+            if (empty($sqlBeforeId)) if (!empty($sqlFrom)) {
+                $messageObserver = strpos($taskMessage['result']['POST_MESSAGE'], 'вы добавлены наблюдателем');
+                $messageResponible = strpos($taskMessage['result']['POST_MESSAGE'], 'вы назначены ответственным');
+
+                if ($messageObserver !== false || $messageResponible !== false) return;
+            }
+
+            $this->commentService->setComment(
+                $sqlBeforeId,
+                $taskMessage['result'],
+                $fileMessageId,
+                $this->safeMySQL,
+                $taskId,
+                $sqlTaskComment,
+                $columnAuthorId,
+                $methodBefore
+            );
+        } elseif ($event == 'ONTASKUPDATE') {
+            if ($task['result']['task']['changedBy'] == $columnTaskResponsibleID) return;
+
+            if (!empty($sql_city_id)) {
+                $this->taskService->updateTask(
+                    $task['result']['task'],
+                    $taskMessage['result']['is_task_result'],
+                    $methodFrom,
+                    $sqlBeforeId
+                );
             } else {
-                $sql_from = $db->getRow("SELECT * FROM det_comment where comment_ufa = ?i", (int)$task_message['result']['ID']);
-                $sql_before_id = $db->getRow("SELECT task_tula FROM det_task where task_ufa = ?i", (int)$tasks);
-                $sql_deal_before_id = $db->getRow("SELECT deal_tula FROM det_deal where deal_ufa = ?i", (int)$deal_id);
+                if ($task->getResponsibleId() !== $columnTaskResponsibleID) return;
 
-                $responsible_id = (new Query)->getQuery($method_before, 'crm.deal.get', [
-                    'ID' => $sql_deal_before_id,
-                ]);
-                $create_by = 1125;
-                $task_reponsible_id = 23286;
-                $author_id = 1125;
+                $sqlUfaCount = $this->safeMySQL->getAll($sqlCount, (int)$taskId);
 
-                $sql_task = "INSERT INTO det_task SET deal_ufa = ?i, deal_tula = ?i, task_ufa = ?i";
-                $sql_task_comment = "INSERT INTO det_comment SET task_ufa = ?i, task_tula = ?i, comment_ufa = ?i, comment_tula = ?i";
-                $sql_update_task = "UPDATE det_task SET task_tula = ?i WHERE task_ufa = ?i";
-                $sql_count = "SELECT * FROM det_task where task_ufa = ?i";
+                if (count($sqlUfaCount) !== 0) return;
+
+                $this->safeMySQL->query($sqlTask, $dealId, (int)$sqlDealBeforeId, (int)$taskId);
+                $this->taskService->setTask(
+                    $task['result']['task'],
+                    $sqlDealBeforeId,
+                    $fileTaskIds,
+                    $this->safeMySQL,
+                    $taskId,
+                    $columnResponsibleId,
+                    $columnCreateBy,
+                    $methodBefore,
+                    $sqlUpdateTask
+                );
+
             }
 
-            if (!empty($sql_deal_before_id)) {
-                if ($event == 'ONTASKADD') {
-                    if (empty($sql_before_id)) {
-                        if ($task['result']['task']['responsibleId'] == $task_reponsible_id) {
-                            $sql_city_count = $db->getAll($sql_count, (int)$tasks);
-
-                            if (count($sql_city_count) == 0) {
-                                $db->query($sql_task, (int)$deal_id, (int)$sql_deal_before_id, (int)$tasks);
-                                (new Task)->setTask($task['result']['task'], $sql_deal_before_id, $file_task_id, $db, $tasks, $responsible_id, $create_by, $method_before, $sql_update_task);
-                            }
-                        }
-                    }
-                } elseif ($event == 'ONTASKCOMMENTADD') {
-                    if (!empty($sql_before_id)) {
-                        if (empty($sql_from)) {
-                            if (strpos($task_message['result']['POST_MESSAGE'], 'вы добавлены наблюдателем') == false || strpos($task_message['result']['POST_MESSAGE'], 'вы назначены ответственным') == false) {
-                                (new Comment)->setComment($sql_before_id, $task_message['result'], $file_message_id, $db, $tasks, $sql_task_comment, $author_id, $method_before);
-                            }
-                        }
-                    }
-                } elseif ($event == 'ONTASKUPDATE') {
-                    if ($task['result']['task']['changedBy'] != $task_reponsible_id) {
-                        if (!empty($sql_city_id)) {
-                            (new UpdateTask)->updateTask($task['result']['task'], $task_message['result']['is_task_result'], $method_from, $sql_before_id);
-                        } else {
-                            if ($task['result']['task']['responsibleId'] == $task_reponsible_id) {
-                                $sql_ufa_count = $db->getAll($sql_count, (int)$tasks);
-
-                                if (count($sql_ufa_count) == 0) {
-                                    $db->query($sql_task, (int)$deal_id, (int)$sql_deal_before_id, (int)$tasks);
-                                    (new Task)->setTask($task['result']['task'], $sql_deal_before_id, $file_task_id, $db, $tasks, $responsible_id['result']['ASSIGNED_BY_ID'], $create_by, $method_before, $sql_update_task);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }

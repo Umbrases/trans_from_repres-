@@ -2,13 +2,19 @@
 
 namespace App\Controller;
 
-use App\Model\Comment;
 use App\Model\Webhooks;
+use App\Service\CommentService;
 
 (new TulaController)->index();
 
 class TulaController
 {
+    private Webhooks $webhooks;
+
+    public function __construct()
+    {
+        $this->webhooks = new Webhooks;
+    }
 
     public function index()
     {
@@ -19,14 +25,14 @@ class TulaController
         $city = "tula";
 
         if ($event == 'ONTASKADD' || $event == 'ONTASKUPDATE') {
-            $tasks = $_REQUEST['data']['FIELDS_AFTER']['ID'];
+            $taskId = $_REQUEST['data']['FIELDS_AFTER']['ID'];
         } elseif ($event == 'ONTASKCOMMENTADD') {
-            $tasks = $_REQUEST['data']['FIELDS_AFTER']['TASK_ID'];
+            $taskId = $_REQUEST['data']['FIELDS_AFTER']['TASK_ID'];
             $item_id = $_REQUEST['data']['FIELDS_AFTER']['ID'];
-            $task_message = (new Comment)->getComment($method, $tasks, $item_id);
+            $task_message = (new CommentService)->getComment($method, $taskId, $item_id);
         }
 
-        (new Webhooks)->setOnTask($event, $method, $method_ufa, $folder_id, $tasks, $task_message, $city);
+        $this->webhooks->setOnTask($event, $method, $method_ufa, $folder_id, $taskId, $task_message, $city);
 
         return true;
     }

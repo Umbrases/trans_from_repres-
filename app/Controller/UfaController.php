@@ -2,14 +2,21 @@
 
 namespace App\Controller;
 
-use App\Model\Comment;
 use App\Model\Webhooks;
+use App\Service\CommentService;
 
 (new UfaController)->index();
 
 class UfaController
 {
+    private Webhooks $webhooks;
+    private CommentService $commentService;
 
+    public function __construct()
+    {
+        $this->webhooks = new Webhooks;
+        $this->commentService = new CommentService;
+    }
     public function index()
     {
         $event = $_REQUEST['event'];
@@ -19,14 +26,14 @@ class UfaController
         $city = "ufa";
 
         if ($event == 'ONTASKADD' || $event == 'ONTASKUPDATE') {
-            $tasks = $_REQUEST['data']['FIELDS_AFTER']['ID'];
+            $taskId = $_REQUEST['data']['FIELDS_AFTER']['ID'];
         } elseif ($event == 'ONTASKCOMMENTADD') {
-            $tasks = $_REQUEST['data']['FIELDS_AFTER']['TASK_ID'];
+            $taskId = $_REQUEST['data']['FIELDS_AFTER']['TASK_ID'];
             $item_id = $_REQUEST['data']['FIELDS_AFTER']['ID'];
-            $task_message = (new Comment)->getComment($method, $tasks, $item_id);
+            $task_message = $this->commentService->getComment($method, $taskId, $item_id);
         }
 
-        (new Webhooks)->setOnTask($event, $method, $method_tula, $folder_id, $tasks, $task_message, $city);
+        $this->webhooks->setOnTask($event, $method, $method_tula, $folder_id, $taskId, $task_message, $city);
 
         return true;
     }

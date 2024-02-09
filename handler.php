@@ -1,10 +1,10 @@
-<?
+<?php
 
 if(empty($_REQUEST['DOMAIN']) && $_REQUEST['DOMAIN'] != 'b24-e77y0j.bitrix24.ru') die();
 
 require_once (__DIR__ . '/CRestTula.php');
 require_once (__DIR__ . '/CRestUfa.php');
-require_once (__DIR__ . '/Query.php');
+require_once (__DIR__ . '/QueryHelper.php');
 require_once (__DIR__ .'/SafeMySQL.php');
 
 $db = new SafeMySQL();
@@ -29,7 +29,7 @@ $batch_list = [
 $result = getQueryBatch('CRestTula', $batch_list);
 
 if(!empty($_REQUEST['stage'])){
-	$sql_deal_id = $db->getRow("SELECT * FROM det_deal where deal_tula = ?i", (int)$deal_id);
+	$sql_deal_id = $db->getRow("SELECT deal_ufa FROM det_deal where deal_tula = ?i", (int)$deal_id);
 	
 	if(!empty($sql_deal_id)){
 		if($_REQUEST['stage'] == 'rd'){
