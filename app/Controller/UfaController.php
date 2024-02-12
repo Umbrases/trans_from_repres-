@@ -5,7 +5,7 @@ namespace App\Controller;
 use App\Model\Webhooks;
 use App\Service\CommentService;
 
-(new UfaController)->index();
+(new UfaController)->handle();
 
 class UfaController
 {
@@ -17,7 +17,7 @@ class UfaController
         $this->webhooks = new Webhooks;
         $this->commentService = new CommentService;
     }
-    public function index()
+    public function handle()
     {
         $event = $_REQUEST['event'];
         $method = 'CRestUfa';

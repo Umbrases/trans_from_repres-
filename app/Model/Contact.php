@@ -4,7 +4,6 @@ namespace App\Model;
 
 class Contact
 {
-
     private string $city;
     private string $name;
     private string $secondName;
@@ -17,6 +16,39 @@ class Contact
     private $emailValueType;
     private $passportSerial;
     private $passportNumber;
+    private $IssuerWithIssueAt;
+    private $issueAt;
+    private $issuer;
+
+    public function getIssueAt()
+    {
+        return $this->issueAt;
+    }
+
+    public function setIssueAt($issueAt): void
+    {
+        $this->issueAt = $issueAt;
+    }
+
+    public function getIssuer()
+    {
+        return $this->issuer;
+    }
+
+    public function setIssuer($issuer): void
+    {
+        $this->issuer = $issuer;
+    }
+
+    public function getIssuerWithIssueAt()
+    {
+        return $this->IssuerWithIssueAt;
+    }
+
+    public function setIssuerWithIssueAt($IssuerWithIssueAt): void
+    {
+        $this->IssuerWithIssueAt = $IssuerWithIssueAt;
+    }
 
     public function getPassportSerial()
     {
@@ -25,7 +57,7 @@ class Contact
 
     public function setPassportSerial($passportSerial): void
     {
-        $this->passportSerial = $passportSerial;
+        $this->passportSerial = mb_substr($passportSerial, 0, 4);
     }
 
     public function getPassportNumber()
@@ -35,7 +67,7 @@ class Contact
 
     public function setPassportNumber($passportNumber): void
     {
-        $this->passportNumber = $passportNumber;
+        $this->passportNumber = mb_substr($passportNumber, -6, 6);
     }
 
 

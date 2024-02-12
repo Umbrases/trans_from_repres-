@@ -11,6 +11,7 @@ class Deal
     private int $numberDeal;
     private string $judgeFio;
     private $dateCourt;
+    private Contact $contact;
 
     public function getTitle(): string
     {
@@ -72,5 +73,13 @@ class Deal
         $this->dateCourt = $dateCourt;
     }
 
+    public function getContact(): Contact
+    {
+        return $this->contact;
+    }
 
+    public function setContact(Contact $contact): void
+    {
+        $this->contact = $contact;
+    }
 }

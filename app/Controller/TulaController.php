@@ -5,7 +5,7 @@ namespace App\Controller;
 use App\Model\Webhooks;
 use App\Service\CommentService;
 
-(new TulaController)->index();
+(new TulaController)->handle();
 
 class TulaController
 {
@@ -16,7 +16,7 @@ class TulaController
         $this->webhooks = new Webhooks;
     }
 
-    public function index()
+    public function handle()
     {
         $event = $_REQUEST['event'];
         $method = 'CRestTula';
