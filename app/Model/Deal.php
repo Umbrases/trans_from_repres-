@@ -5,19 +5,20 @@ namespace App\Model;
 class Deal
 {
 
-    private string $title;
+    private ?string $title;
     private $comments;
     private $summaDebt;
-    private int $numberDeal;
-    private string $judgeFio;
+    private ?int $numberDeal;
+    private ?string $judgeFio;
     private $dateCourt;
+    private Contact $contact;
 
-    public function getTitle(): string
+    public function getTitle(): ?string
     {
         return $this->title;
     }
 
-    public function setTitle(string $title): void
+    public function setTitle(?string $title = null): void
     {
         $this->title = $title;
     }
@@ -42,22 +43,22 @@ class Deal
         $this->summaDebt = $summaDebt;
     }
 
-    public function getNumberDeal(): int
+    public function getNumberDeal(): ?int
     {
         return $this->numberDeal;
     }
 
-    public function setNumberDeal(int $numberDeal): void
+    public function setNumberDeal(?int $numberDeal = null): void
     {
         $this->numberDeal = $numberDeal;
     }
 
-    public function getJudgeFio(): string
+    public function getJudgeFio(): ?string
     {
         return $this->judgeFio;
     }
 
-    public function setJudgeFio(string $judgeFio): void
+    public function setJudgeFio(?string $judgeFio= null): void
     {
         $this->judgeFio = $judgeFio;
     }
@@ -72,5 +73,13 @@ class Deal
         $this->dateCourt = $dateCourt;
     }
 
+    public function getContact(): Contact
+    {
+        return $this->contact;
+    }
 
+    public function setContact(Contact $contact): void
+    {
+        $this->contact = $contact;
+    }
 }

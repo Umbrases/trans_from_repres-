@@ -4,12 +4,11 @@ namespace App\Model;
 
 class Contact
 {
-
-    private string $city;
-    private string $name;
-    private string $secondName;
-    private string $lastName;
-    private string $phoneValueType;
+    private ?string $city;
+    private ?string $name;
+    private ?string $secondName;
+    private ?string $lastName;
+    private ?string $phoneValueType;
     private $phoneValue;
     private $birthdate;
     private $address;
@@ -17,6 +16,39 @@ class Contact
     private $emailValueType;
     private $passportSerial;
     private $passportNumber;
+    private $IssuerWithIssueAt;
+    private $issueAt;
+    private $issuer;
+
+    public function getIssueAt()
+    {
+        return $this->issueAt;
+    }
+
+    public function setIssueAt($issueAt): void
+    {
+        $this->issueAt = $issueAt;
+    }
+
+    public function getIssuer()
+    {
+        return $this->issuer;
+    }
+
+    public function setIssuer($issuer): void
+    {
+        $this->issuer = $issuer;
+    }
+
+    public function getIssuerWithIssueAt()
+    {
+        return $this->IssuerWithIssueAt;
+    }
+
+    public function setIssuerWithIssueAt($IssuerWithIssueAt): void
+    {
+        $this->IssuerWithIssueAt = $IssuerWithIssueAt;
+    }
 
     public function getPassportSerial()
     {
@@ -25,7 +57,7 @@ class Contact
 
     public function setPassportSerial($passportSerial): void
     {
-        $this->passportSerial = $passportSerial;
+        $this->passportSerial = mb_substr($passportSerial, 0, 4);
     }
 
     public function getPassportNumber()
@@ -35,7 +67,7 @@ class Contact
 
     public function setPassportNumber($passportNumber): void
     {
-        $this->passportNumber = $passportNumber;
+        $this->passportNumber = mb_substr($passportNumber, -6, 6);
     }
 
 
@@ -89,52 +121,51 @@ class Contact
         $this->phoneValue = $phoneValue;
     }
 
-    public function getPhoneValueType(): string
+    public function getPhoneValueType(): ?string
     {
         return $this->phoneValueType;
     }
-    public function setPhoneValueType(string $phoneValueType): void
+    public function setPhoneValueType(?string $phoneValueType = null): void
     {
         $this->phoneValueType = $phoneValueType;
     }
 
-    public function getName(): string
+    public function getName(): ?string
     {
         return $this->name;
     }
 
-    public function setName(string $name): void
+    public function setName(?string $name = null): void
     {
         $this->name = $name;
     }
 
-    public function getSecondName(): string
+    public function getSecondName(): ?string
     {
         return $this->secondName;
     }
 
-    public function setSecondName(string $secondName): void
+    public function setSecondName(?string $secondName = null): void
     {
         $this->secondName = $secondName;
     }
 
-    public function getLastName(): string
+    public function getLastName(): ?string
     {
         return $this->lastName;
     }
 
-    public function setLastName(string $lastName): void
+    public function setLastName(?string $lastName = null): void
     {
         $this->lastName = $lastName;
     }
-
 
     public function getCity()
     {
         return $this->city;
     }
 
-    public function setCity(string $city): void
+    public function setCity(?string $city = null): void
     {
         $this->city = $city;
     }

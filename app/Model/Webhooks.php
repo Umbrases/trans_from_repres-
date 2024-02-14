@@ -4,7 +4,6 @@ namespace App\Model;
 
 use App\Service\CommentService;
 use App\Service\TaskService;
-use SafeMySQL;
 
 class Webhooks
 {
@@ -25,20 +24,27 @@ class Webhooks
 
     public function setOnTask($event, $methodFrom, $methodBefore, $folderId, $taskId, $taskMessage, $city): void
     {
+        //Вывод задачи
         $task = $this->taskService->getTask($methodFrom, $taskId);
 
+        //Вывод сделки
         $dealId = $task->getDealId();
 
         $fileTaskIds = [];
         $fileMessageId = [];
+
+        //Проверка на файл в задаче
         if (!empty($task['result']['task']['ufTaskWebdavFiles'])) {
             foreach ($task['result']['task']['ufTaskWebdavFiles'] as $taskFile) {
+                //Вывод файла
                 $fileTask = $this->queryHelper->getQuery($methodFrom, 'disk.attachedObject.get', [
                     'id' => $taskFile,
                 ]);
 
+                //Считывание файла в строку
                 $fileTaskContent = file_get_contents(str_replace(' ', '%20', $fileTask['result']['DOWNLOAD_URL']));
 
+                //Запись файла в битрикс
                 $fileUploadTask = $this->taskService->setFile(
                     $methodBefore,
                     $folderId,
@@ -46,33 +52,39 @@ class Webhooks
                     $fileTask
                 );
 
-
-
+                //Добавить id в переменную
                 $fileTaskIds[] .= 'n' . $fileUploadTask['result']['ID'];
             }
         }
 
+        //Проверка на файл в коментарии
         if (!empty($taskMessage['result']['ATTACHED_OBJECTS'])) {
             foreach ($taskMessage['result']['ATTACHED_OBJECTS'] as $attached) {
+                //Вывод файла
                 $fileMessage = $this->queryHelper->getQuery($methodFrom, 'disk.file.get', [
                     'id' => $attached['FILE_ID'],
                 ]);
 
+                //Считывание файла в строку
                 $fileMessageContent = file_get_contents(str_replace(' ', '%20', $fileMessage['result']['DOWNLOAD_URL']));
 
+                //Запись файла в битрикс
                 $fileUploadMessage = $this->taskService->setFile(
                     $methodBefore,
                     $folderId,
                     $fileMessageContent,
                     $fileMessage
                 );
+
+                //Добавить id в переменную
                 $fileMessageId[] .= 'n' . $fileUploadMessage['result']['ID'];
             }
         }
 
+        //Проверка на то, какой метод используется
         if ($event !== 'ONTASKCOMMENTADD' || $event !== 'ONTASKADD' || $event !== 'ONTASKUPDATE') return;
 
-
+        //Проверка на город и запись в переменную
         $columnSelectTask = $city == "tula" ? 'task_ufa' : 'task_tula';
         $columnWhereTask = $city == "tula" ? 'task_tula' : 'task_ufa';
         $columnSelectDeal = $city == "tula" ? 'deal_ufa' : 'deal_tula';
@@ -80,6 +92,7 @@ class Webhooks
         $columnSelectComment = $city == "tula" ? 'comment_ufa' : 'comment_tula';
         $columnWhereComment = $city == "tula" ? 'comment_tula' : 'comment_ufa';
 
+        //sql запросы
         $sqlFrom = $this->safeMySQL->getRow("SELECT * FROM det_comment where {$columnWhereComment} = ?i", (int)$taskMessage['result']['ID']);
         $sqlBeforeId = $this->safeMySQL->getRow("SELECT {$columnSelectTask} FROM det_task where {$columnWhereTask} = ?i", (int)$taskId);
         $sqlDealBeforeId = $this->safeMySQL->getRow("SELECT {$columnSelectDeal} FROM det_deal where {$columnWhereDeal} = ?i", $dealId);
@@ -96,6 +109,7 @@ class Webhooks
         $columnTaskResponsibleID = $city == "tula" ? 1125 : 23286;
         $columnAuthorId = $city == "tula" ? 23286 : 1125;
 
+        //Проверка на пустоту записи сделки в бд
         if (empty($sqlDealBeforeId)) return;
 
         if ($event == 'ONTASKADD') {

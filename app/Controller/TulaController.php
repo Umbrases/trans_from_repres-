@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Model\CRestTula;
+use App\Model\CRestUfa;
 use App\Model\Webhooks;
 use App\Service\CommentService;
 
@@ -19,8 +21,8 @@ class TulaController
     public function index()
     {
         $event = $_REQUEST['event'];
-        $method = 'CRestTula';
-        $method_ufa = 'CRestUfa';
+        $method = CRestTula::class;
+        $method_ufa = CRestUfa::class;
         $folder_id = 1740432;
         $city = "tula";
 
