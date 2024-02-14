@@ -7,7 +7,7 @@ use App\Model\CRestUfa;
 use App\Model\Webhooks;
 use App\Service\CommentService;
 
-(new UfaController)->handle();
+(new UfaController)->index();
 
 class UfaController
 {
@@ -19,7 +19,7 @@ class UfaController
         $this->webhooks = new Webhooks;
         $this->commentService = new CommentService;
     }
-    public function handle()
+    public function index()
     {
         $event = $_REQUEST['event'];
         $method = CRestUfa::class;

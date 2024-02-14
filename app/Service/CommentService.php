@@ -3,20 +3,17 @@
 namespace App\Service;
 
 use App\Model\QueryHelper;
-use App\Model\SafeMySQL;
 
 class CommentService
 {
     private QueryHelper $queryHelper;
-    private SafeMySQL $safeMySQL;
 
     public function __construct()
     {
         $this->queryHelper = new QueryHelper;
-        $this->safeMySQL = new SafeMySQL;
     }
 
-    public function setComment($sqlId, $taskMessage, $fileId, $tasks, $sqlTask, $authorId, $method)
+    public function setComment($sqlId, $taskMessage, $fileId, $db, $tasks, $sqlTask, $authorId, $method)
     {
         $pregReplace = preg_replace(array('/^\WUSER=\w{2,}\W/', '/\W{2}USER\W/'), '', $taskMessage['POST_MESSAGE']);
         $methodQuery = $this->queryHelper->getQuery($method, 'task.commentitem.add', [
@@ -27,7 +24,7 @@ class CommentService
                 'UF_FORUM_MESSAGE_DOC' => $fileId,
             ],]);
 
-        $this->safeMySQL->query($sqlTask, (int)$tasks, (int)$sqlId, (int)$taskMessage['ID'], (int)$methodQuery['result']);
+        $db->query($sqlTask, (int)$tasks, (int)$sqlId, (int)$taskMessage['ID'], (int)$methodQuery['result']);
 
         return true;
     }

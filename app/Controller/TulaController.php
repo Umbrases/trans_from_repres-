@@ -7,7 +7,7 @@ use App\Model\CRestUfa;
 use App\Model\Webhooks;
 use App\Service\CommentService;
 
-(new TulaController)->handle();
+(new TulaController)->index();
 
 class TulaController
 {
@@ -18,7 +18,7 @@ class TulaController
         $this->webhooks = new Webhooks;
     }
 
-    public function handle()
+    public function index()
     {
         $event = $_REQUEST['event'];
         $method = CRestTula::class;
