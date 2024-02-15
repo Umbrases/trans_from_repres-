@@ -19,7 +19,6 @@ class TransferDeal
 
     public function saveDeal(int $dealId): void
     {
-        writeToLog(123);
         $deal = $this->dealService->getDeal($dealId);
 
         // Ищем id уфимской сделки
@@ -27,6 +26,9 @@ class TransferDeal
             "SELECT deal_ufa FROM det_deal where deal_tula = ?i",
             $dealId
         );
+        writeToLog($sqlDealId);
+        writeToLog($dealId);
+
 
         // Если сделка в Уфе отсутствует, то создаем сделку
         if (empty($sqlDealId)) {

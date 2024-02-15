@@ -10,9 +10,9 @@ use App\Controller\DealController;
 
 $router = Router::create();
 
-$router->get('/ufa', [UfaController::class, 'index']);
+$router->post('/ufa', [UfaController::class, 'index']);
 
-$router->get('/tula', [TulaController::class, 'index']);
+$router->post('/tula', [TulaController::class, 'index']);
 
 $router->get('/handler', [DealController::class, 'index']);
 

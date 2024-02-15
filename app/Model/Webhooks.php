@@ -27,15 +27,18 @@ class Webhooks
         //Вывод задачи
         $task = $this->taskService->getTask($methodFrom, $taskId);
 
+
         //Вывод сделки
         $dealId = $task->getDealId();
 
+
         $fileTaskIds = [];
         $fileMessageId = [];
+//        writeToLog($task);
 
         //Проверка на файл в задаче
-        if (!empty($task['result']['task']['ufTaskWebdavFiles'])) {
-            foreach ($task['result']['task']['ufTaskWebdavFiles'] as $taskFile) {
+        if (!empty($task->getTaskFile())) {
+            foreach ($task->getTaskFile() as $taskFile) {
                 //Вывод файла
                 $fileTask = $this->queryHelper->getQuery($methodFrom, 'disk.attachedObject.get', [
                     'id' => $taskFile,
@@ -81,8 +84,14 @@ class Webhooks
             }
         }
 
+
+
         //Проверка на то, какой метод используется
-        if ($event !== 'ONTASKCOMMENTADD' || $event !== 'ONTASKADD' || $event !== 'ONTASKUPDATE') return;
+        if ($event != 'ONTASKCOMMENTADD' || $event != 'ONTASKADD' || $event != 'ONTASKUPDATE') { //Ошибка
+            writeToLog(231);
+            return;
+        };
+//        writeToLog($event);
 
         //Проверка на город и запись в переменную
         $columnSelectTask = $city == "tula" ? 'task_ufa' : 'task_tula';
@@ -91,6 +100,7 @@ class Webhooks
         $columnWhereDeal = $city == "tula" ? 'deal_tula' : 'deal_ufa';
         $columnSelectComment = $city == "tula" ? 'comment_ufa' : 'comment_tula';
         $columnWhereComment = $city == "tula" ? 'comment_tula' : 'comment_ufa';
+//        writeToLog($event);
 
         //sql запросы
         $sqlFrom = $this->safeMySQL->getRow("SELECT * FROM det_comment where {$columnWhereComment} = ?i", (int)$taskMessage['result']['ID']);
@@ -110,18 +120,19 @@ class Webhooks
         $columnAuthorId = $city == "tula" ? 23286 : 1125;
 
         //Проверка на пустоту записи сделки в бд
-        if (empty($sqlDealBeforeId)) return;
-
+        if (empty($sqlDealBeforeId)) return;  //Ошибка
+//        writeToLog($event);
         if ($event == 'ONTASKADD') {
             if (!empty($sqlBeforeId)) if ($task->getResponsibleId() !== $columnTaskResponsibleID) return;
 
             $sqlCityCount = $this->safeMySQL->getAll($sqlCount, (int)$taskId);
 
-            if (count($sqlCityCount) !== 0) return;
+            writeToLog($sqlCityCount);
+            if (count($sqlCityCount) != 0) return;
 
             $this->safeMySQL->query($sqlTask, $dealId, (int)$sqlDealBeforeId, (int)$taskId);
-            $this->taskService->setTask(
-                $task['result']['task'],
+            writeToLog($this->taskService->setTask(
+                $task,
                 $sqlDealBeforeId,
                 $fileTaskIds,
                 $this->safeMySQL,
@@ -130,7 +141,7 @@ class Webhooks
                 $columnCreateBy,
                 $methodBefore,
                 $sqlUpdateTask
-            );
+            ));
         } elseif ($event == 'ONTASKCOMMENTADD') {
             if (empty($sqlBeforeId)) if (!empty($sqlFrom)) {
                 $messageObserver = strpos($taskMessage['result']['POST_MESSAGE'], 'вы добавлены наблюдателем');
@@ -168,7 +179,7 @@ class Webhooks
 
                 $this->safeMySQL->query($sqlTask, $dealId, (int)$sqlDealBeforeId, (int)$taskId);
                 $this->taskService->setTask(
-                    $task['result']['task'],
+                    $task,
                     $sqlDealBeforeId,
                     $fileTaskIds,
                     $this->safeMySQL,
@@ -183,4 +194,13 @@ class Webhooks
 
         }
     }
+}
+
+function writeToLog($data) {
+    $log = "\n------------------------\n";
+    $log .= date("Y.m.d G:i:s") . "\n";
+    $log .= print_r($data, 1);
+    $log .= "\n------------------------\n";
+    file_put_contents(getcwd() . '/hook.log', $log, FILE_APPEND);
+    return true;
 }

@@ -7,6 +7,17 @@ class Task
     private ?int $id;
     private ?string $title;
     private ?int $dealId;
+    private $taskFile;
+
+    public function getTaskFile()
+    {
+        return $this->taskFile;
+    }
+
+    public function setTaskFile($taskFile): void
+    {
+        $this->taskFile = $taskFile;
+    }
 
     private ?int $responsibleId;
 
