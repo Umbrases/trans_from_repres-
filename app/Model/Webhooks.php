@@ -120,18 +120,18 @@ class Webhooks
         $columnAuthorId = $city == "tula" ? 23286 : 1125;
 
         //Проверка на пустоту записи сделки в бд
-        if (empty($sqlDealBeforeId)) return;  //Ошибка
+        if (empty($sqlDealBeforeId)) return;
 //        writeToLog($event);
         if ($event == 'ONTASKADD') {
             if (!empty($sqlBeforeId)) if ($task->getResponsibleId() !== $columnTaskResponsibleID) return;
 
             $sqlCityCount = $this->safeMySQL->getAll($sqlCount, (int)$taskId);
 
-            writeToLog($sqlCityCount);
-            if (count($sqlCityCount) != 0) return;
+//            writeToLog($sqlCityCount);
+            if (count($sqlCityCount) != 0) return;//Ошибка
 
             $this->safeMySQL->query($sqlTask, $dealId, (int)$sqlDealBeforeId, (int)$taskId);
-            writeToLog($this->taskService->setTask(
+            $this->taskService->setTask( //Ошибка
                 $task,
                 $sqlDealBeforeId,
                 $fileTaskIds,
@@ -141,13 +141,13 @@ class Webhooks
                 $columnCreateBy,
                 $methodBefore,
                 $sqlUpdateTask
-            ));
+            );
         } elseif ($event == 'ONTASKCOMMENTADD') {
             if (empty($sqlBeforeId)) if (!empty($sqlFrom)) {
                 $messageObserver = strpos($taskMessage['result']['POST_MESSAGE'], 'вы добавлены наблюдателем');
                 $messageResponible = strpos($taskMessage['result']['POST_MESSAGE'], 'вы назначены ответственным');
 
-                if ($messageObserver !== false || $messageResponible !== false) return;
+                if ($messageObserver !== false || $messageResponible !== false) return;//Ошибка
             }
 
             $this->commentService->setComment(
@@ -175,7 +175,7 @@ class Webhooks
 
                 $sqlUfaCount = $this->safeMySQL->getAll($sqlCount, (int)$taskId);
 
-                if (count($sqlUfaCount) !== 0) return;
+                if (count($sqlUfaCount) !== 0) return; //Ошибка
 
                 $this->safeMySQL->query($sqlTask, $dealId, (int)$sqlDealBeforeId, (int)$taskId);
                 $this->taskService->setTask(

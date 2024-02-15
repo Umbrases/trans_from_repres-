@@ -8,6 +8,73 @@ class Task
     private ?string $title;
     private ?int $dealId;
     private $taskFile;
+    private $description;
+    private $deadline;
+    private $startDatePlan;
+    private ?int $changedBy;
+    private $status;
+    private $allowChangeDeadline;
+    private ?int $responsibleId;
+
+    public function getDescription()
+    {
+        return $this->description;
+    }
+
+    public function setDescription($description): void
+    {
+        $this->description = $description;
+    }
+
+    public function getDeadline()
+    {
+        return $this->deadline;
+    }
+
+    public function setDeadline($deadline): void
+    {
+        $this->deadline = $deadline;
+    }
+
+    public function getStartDatePlan()
+    {
+        return $this->startDatePlan;
+    }
+
+    public function setStartDatePlan($startDatePlan): void
+    {
+        $this->startDatePlan = $startDatePlan;
+    }
+
+    public function getChangedBy()
+    {
+        return $this->changedBy;
+    }
+
+    public function setChangedBy($changedBy): void
+    {
+        $this->changedBy = $changedBy;
+    }
+
+    public function getStatus()
+    {
+        return $this->status;
+    }
+
+    public function setStatus($status): void
+    {
+        $this->status = $status;
+    }
+
+    public function getAllowChangeDeadline()
+    {
+        return $this->allowChangeDeadline;
+    }
+
+    public function setAllowChangeDeadline($allowChangeDeadline): void
+    {
+        $this->allowChangeDeadline = $allowChangeDeadline;
+    }
 
     public function getTaskFile()
     {

@@ -18,15 +18,15 @@ class TaskService
     {
         $method_query = $this->queryHelper->getQuery($method, 'tasks.task.add', [
             'fields' => [
-                'TITLE' => $task['title'],
-                'DESCRIPTION' => $task['description'],
+                'TITLE' => $task->getTitle(),
+                'DESCRIPTION' => $task->getDescription(),
                 'RESPONSIBLE_ID' => $responsibleId,
                 'CREATED_BY' => $createBy,
                 'UF_CRM_TASK' => ['D_' . $sqlDealId],
-                'START_DATE_PLAN' => $task['start_date_plan'],
-                'DEADLINE' => $task['deadline'],
+                'START_DATE_PLAN' => $task->getStartDatePlan(),
+                'DEADLINE' => $task->getDeadline(),
                 'UF_TASK_WEBDAV_FILES' => $fileTaskTulaId,
-                'ALLOW_CHANGE_DEADLINE' => $task['allowChangeDeadline'],
+                'ALLOW_CHANGE_DEADLINE' => $task->getAllowChangeDeadline(),
             ],]);
         writeToLog($method_query);
 
@@ -44,7 +44,6 @@ class TaskService
             ],
         ]);
 
-
         return $this->buildTaskFromResponseArray($responseArray);
     }
 
@@ -55,6 +54,12 @@ class TaskService
         $task->setDealId($responseArray['result']['task']['ufCrmTask'][0]);
         $task->setResponsibleId($responseArray['result']['task']['responsibleId']);
         $task->setTaskFile($responseArray['result']['task']['ufTaskWebdavFiles']);
+        $task->setDescription($responseArray['result']['task']['description']);
+        $task->setDeadline($responseArray['result']['task']['deadline']);
+        $task->setStartDatePlan($responseArray['result']['task']['startDatePlan']);
+        $task->setChangedBy($responseArray['result']['task']['changedBy']);
+        $task->setStatus($responseArray['result']['task']['status']);
+        $task->setAllowChangeDeadline($responseArray['result']['task']['allowChangeDeadline']);
 
         return $task;
     }
