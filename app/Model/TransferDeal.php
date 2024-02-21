@@ -3,54 +3,44 @@
 namespace App\Model;
 
 use App\Service\DealService;
-use SafeMySQL;
 
 class TransferDeal
 {
-
-    private QueryHelper $queryHelper;
-
+    public const RESTRUCTURING_DEBT = 'debt_restructuring';
+    public const RESTRUCTURING_PROPERTY = 'property_restructuring';
     private SafeMySQL $safeMySQL;
     private  DealService $dealService;
 
     public function __construct()
     {
-        $this->queryHelper = new QueryHelper;
         $this->safeMySQL = new SafeMySQL;
         $this->dealService = new DealService;
     }
 
-    public function setDeal($dealId) {
-        $crmDealContactGet = $this->dealService->getDealContact($dealId);
+    public function saveDeal(int $dealId): void
+    {
+        $deal = $this->dealService->getDeal($dealId);
 
-        if(!empty($_REQUEST['stage'])) {
-            $sqlDealId = $this->safeMySQL->getRow(
-                "SELECT deal_ufa FROM det_deal where deal_tula = ?i",
-                (int)$dealId
-            );
+        // Ищем id уфимской сделки
+        $sqlDealId = $this->safeMySQL->getRow(
+            "SELECT deal_ufa FROM det_deal where deal_tula = ?i",
+            $dealId
+        );
 
-            if(empty($sql_deal_id)) return;
-            if($_REQUEST['stage'] == 'rd'){
-                $stage = 'C58:PREPARATION';
-            } elseif($_REQUEST['stage'] == 'ri'){
-                $stage = 'C58:PREPAYMENT_INVOIC';
-            }
+        // Если сделка в Уфе отсутствует, то создаем сделку
+        if (empty($sqlDealId)) {
+            $this->dealService->setDeal($deal, $dealId);
+        } else {
+            // ... иначе обновляем ее
+            // Устанавливаем новое состояние сделки
+            $stage = match ($_REQUEST['stage']) {
+                self::RESTRUCTURING_DEBT => 'C58:PREPARATION',
+                self::RESTRUCTURING_PROPERTY => 'C58:PREPAYMENT_INVOIC',
+                default => '',
+            };
 
+            // Обновление сделки в уфе если она есть
             $this->dealService->updateDeal($sqlDealId, $stage);
         }
-
-        $date = explode(' ', $crmDealContactGet->getContactArr()['UF_CRM_6333543A28B78']);
-
-        foreach($date as $value){
-            $time = strtotime($value);
-            if($time == true){
-                $time = $value;
-                unset($date[array_search($time, $date)]);
-            }
-        }
-
-        $date = implode(' ', $date);
-
-
     }
 }

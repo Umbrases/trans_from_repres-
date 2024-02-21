@@ -1,6 +1,6 @@
 <?php
-namespace App\Model;
 
+namespace App\Model;
 
 define('C_REST_WEB_HOOK_URL', 'https://b24-e77y0j.bitrix24.ru/rest/1125/6gwgqqt3q8orm4em/');
 

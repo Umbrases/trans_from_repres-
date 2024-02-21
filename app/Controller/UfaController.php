@@ -2,10 +2,10 @@
 
 namespace App\Controller;
 
+use App\Model\CRestTula;
+use App\Model\CRestUfa;
 use App\Model\Webhooks;
 use App\Service\CommentService;
-
-(new UfaController)->index();
 
 class UfaController
 {
@@ -17,11 +17,12 @@ class UfaController
         $this->webhooks = new Webhooks;
         $this->commentService = new CommentService;
     }
+
     public function index()
     {
         $event = $_REQUEST['event'];
-        $method = 'CRestUfa';
-        $method_tula = 'CRestTula';
+        $method = CRestUfa::class;
+        $method_tula = CRestTula::class;
         $folder_id = 54657;
         $city = "ufa";
 
@@ -32,6 +33,7 @@ class UfaController
             $item_id = $_REQUEST['data']['FIELDS_AFTER']['ID'];
             $task_message = $this->commentService->getComment($method, $taskId, $item_id);
         }
+        writeToLog($task_message);
 
         $this->webhooks->setOnTask($event, $method, $method_tula, $folder_id, $taskId, $task_message, $city);
 
@@ -39,3 +41,12 @@ class UfaController
     }
 }
 
+
+function writeToLog($data) {
+    $log = "\n------------------------\n";
+    $log .= date("Y.m.d G:i:s") . "\n";
+    $log .= print_r($data, 1);
+    $log .= "\n------------------------\n";
+    file_put_contents(getcwd() . '/hook.log', $log, FILE_APPEND);
+    return true;
+}

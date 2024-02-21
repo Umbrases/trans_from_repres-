@@ -1,6 +1,9 @@
-<?
+<?php
+
 namespace App\Model;
 
+use App\Model\CRestTula;
+use App\Model\CRestUfa;
 
 class QueryHelper {
     public function getQuery($class, $method, $params)

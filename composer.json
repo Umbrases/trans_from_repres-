@@ -12,7 +12,8 @@
         }
     ],
     "require": {
-        "php": ">=8.1",
-        "miladrahimi/phpcontainer": "^5.3.1"
+        "php": ">=8.0",
+        "miladrahimi/phpcontainer": "^5.3.1",
+        "miladrahimi/phprouter": "5.*"
     }
 }

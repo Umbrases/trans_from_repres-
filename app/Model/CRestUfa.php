@@ -2,7 +2,7 @@
 namespace App\Model;
 
 
-define('C_REST_WEB_HOOK_URL_UFA', 'https://stopzaym.bitrix24.ru/rest/17950/08eddwis5wp36zvk/');
+define('C_REST_WEB_HOOK_URL_UFA', 'https://stopzaym.bitrix24.ru/rest/17950/n30agkquny5xcxz2/');
 
 
 class CRestUfa
