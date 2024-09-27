@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use App\Model\Contact;
+use App\Model\CRestBox;
+use App\Model\CRestCloud;
 
 class ContactController
 {

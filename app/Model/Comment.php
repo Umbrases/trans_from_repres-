@@ -43,10 +43,21 @@ class Comment
         ]);
     }
 
-    public function setOnComment($classFrom, $classBefore, $taskMessage, $folderId, $taskId): void
+    public function saveComment($classFrom, $classBefore, $taskMessage, $folderId, $taskId): void
     {
         $safeMySQL = new SafeMySQL;
         $taskService = new TaskService;
+
+        $sqlFrom = $safeMySQL->getRow("SELECT * FROM det_comment where comment_cloud = ?i", (int)$taskMessage['ID']);
+        $sqlBeforeId = $safeMySQL->getRow("SELECT task_box FROM det_task where task_cloud = ?i", (int)$taskId)['task_box'];
+        $sqlTaskComment = "INSERT INTO det_comment SET task_cloud = ?i, task_box = ?i, comment_cloud = ?i, comment_box = ?i";
+        $columnAuthorId = $safeMySQL
+            ->getRow("SELECT `user_box` FROM det_user where `user_cloud` = ?i", $taskMessage['AUTHOR_ID'])['user_box'];
+
+        if (empty($sqlBeforeId['task_box'])) {
+            $taskController = new TasksController();
+            $taskController->store($taskId);
+        }
 
         $fileMessageId = [];
 
@@ -87,12 +98,6 @@ class Comment
                 $fileMessageId[] .= 'n' . $fileUploadMessage['result']['ID'];
             }
         }
-
-        $sqlFrom = $safeMySQL->getRow("SELECT * FROM det_comment where comment_cloud = ?i", (int)$taskMessage['ID']);
-        $sqlBeforeId = $safeMySQL->getRow("SELECT task_box FROM det_task where task_cloud = ?i", (int)$taskId)['task_box'];
-        $sqlTaskComment = "INSERT INTO det_comment SET task_cloud = ?i, task_box = ?i, comment_cloud = ?i, comment_box = ?i";
-        $columnAuthorId = $safeMySQL
-            ->getRow("SELECT `user_box` FROM det_user where `user_cloud` = ?i", $taskMessage['AUTHOR_ID'])['user_box'];
 
         $columnAuthorId = !empty($columnAuthorId) ? $columnAuthorId : 1;
 

@@ -353,7 +353,7 @@ class Lead
         $this->leadService = new LeadService;
     }
 
-    public function setLead($classFrom, $classBefore, $leadId): void
+    public function saveLead($classFrom, $classBefore, $leadId): void
     {
         $safeMySQL = new SafeMySQL;
 

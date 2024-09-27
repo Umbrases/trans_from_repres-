@@ -20,20 +20,12 @@ class CommentsController
     {
         $classFrom = CRestCloud::class;
         $classBefore = CRestBox::class;
-        $safeMySQL = new SafeMySQL;
 
         $columnFolderId = 502137;
 
-        $taskBoxId = $safeMySQL->getRow("SELECT `task_box` FROM det_task where task_cloud = ?i", (int)$taskId);
-
-        if (empty($taskBoxId['task_box'])) {
-            $taskController = new TasksController();
-            $taskController->store($taskId);
-        }
-
         $taskMessage = $this->comment->getComment($classFrom, $taskId, $itemId);
 
-        $this->comment->setOnComment($classFrom, $classBefore, $taskMessage['result'], $columnFolderId, $taskId);
+        $this->comment->saveComment($classFrom, $classBefore, $taskMessage['result'], $columnFolderId, $taskId);
     }
 }
 

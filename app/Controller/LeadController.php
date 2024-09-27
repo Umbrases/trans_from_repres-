@@ -18,6 +18,6 @@ class LeadController
         $classFrom = CRestCloud::class;
         $classBefore = CRestBox::class;
 
-        $this->lead->setLead($classFrom, $classBefore, $leadId);
+        $this->lead->saveLead($classFrom, $classBefore, $leadId);
     }
 }
