@@ -1,0 +1,8 @@
+/vendor/
+/logs/
+/.idea
+hook.log
+log.txt
+/app/model/SafeMySQL.php
+/app/model/CRestCloud.php
+/app/model/CRestBox.php

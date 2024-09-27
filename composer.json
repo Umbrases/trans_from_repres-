@@ -1,0 +1,19 @@
+{
+    "name": "user/trans_from_repres",
+    "autoload": {
+        "psr-4": {
+            "App\\": "app",
+            "MiladRahimi\\PhpRouter\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "cenarev"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "miladrahimi/phpcontainer": "^5.3.1",
+        "miladrahimi/phprouter": "5.*"
+    }
+}
