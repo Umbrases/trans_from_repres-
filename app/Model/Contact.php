@@ -198,22 +198,25 @@ class Contact
         $safeMySQL = new SafeMySQL;
         $contactService = new ContactService;
 
-        //Вывод контакта
-        $contact = $contactService->getContact($classFrom, $contactId);
-
         $sqlBeforeId = $safeMySQL
-            ->getRow("SELECT `contact_box` FROM det_contact where contact_cloud = ?i", (int)$contactId);
+            ->getRow("SELECT `contact_box` FROM det_contact where contact_cloud = ?i", (int)$contactId)['contact_box'];
+        $sqlContact = "INSERT INTO det_contact SET contact_box = ?i, contact_cloud = ?i";
+        $sqlUpdateContact = "UPDATE det_contact SET contact_box = ?i WHERE contact_cloud = ?i";
+
+        //Вывод контакта
+        $contact = $contactService->getContact($classFrom, $contactId, $sqlBeforeId, $classBefore);
+
         if (!empty($contact->getLeadId())) {
             $sqlLead = $safeMySQL
                 ->getRow("SELECT `lead_box` FROM det_lead where lead_cloud = ?i", $contact->getLeadId());
         }
 
         if (empty($sqlBeforeId)) {
-            $contactService->setContact();
+            $contactService->setContact($contact, $classBefore, $sqlContact);
         } else {
-            $contactService->updateContact();
+            writeToLog($contact);
+            $contactService->updateContact($contact, $classBefore, $sqlUpdateContact, $sqlBeforeId);
         }
-        writeToLog($contact);
     }
 
 }
