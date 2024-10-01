@@ -22,92 +22,51 @@ class ContactService
         ])['result'];
 
         if (empty($sqlBeforeId)) {
-            return $this->buildContactFromResponseArray($responseArrayCloud['result'], $responseAdressCloud);
+            return $this->buildContactFromResponseArray($responseArrayCloud['result'], $responseAdressCloud, $classBefore);
         } else {
             $comparisonResult = $this->comparisonContact($responseArrayCloud['result'], $classBefore, $sqlBeforeId);
-            return $this->buildContactFromResponseArray($comparisonResult, $responseAdressCloud);
+            return $this->buildContactFromResponseArray($comparisonResult, $responseAdressCloud, $classBefore);
         }
     }
 
-    public function buildContactFromResponseArray(array $responseArrayCloud, $responseAdressCloud)
+    public function buildContactFromResponseArray(array $responseArrayCloud, $responseAdressCloud, $classBefore)
     {
         $contact = [];
         foreach ($responseArrayCloud as $key => $value) {
             switch ($key) {
-                case 'ID' :
-                    $contact['ID'] = $value;
-                    break;
-                case 'UF_CRM_629A1B699D519' :
-                    $contact['UF_CRM_629A1B699D519'] = $value;
-                    break;
-                case 'NAME' :
-                    $contact['NAME'] = $value;
-                    break;
-                case 'SECOND_NAME' :
-                    $contact['SECOND_NAME'] = $value;
-                    break;
-                case 'LAST_NAME' :
-                    $contact['LAST_NAME'] = $value;
-                    break;
-                case 'PHONE' :
-                    $contact['PHONE'] = $value;
-                    break;
-                case 'EMAIL' :
-                    $contact['EMAIL'] = $value;
-                    break;
-                case 'BIRTHDATE' :
-                    $contact['BIRTHDATE'] = $value;
-                    break;
                 case 'ADDRESS' :
                     $contact['ADDRESS'] = $responseAdressCloud;
-                    break;
-                case 'UF_CRM_5D53E5846CE99' :
-                    $contact['UF_CRM_5D53E5846CE99'] = $value;
-                    break;
-                case 'UF_CRM_1624004832' :
-                    $contact['UF_CRM_1624004832'] = $value;
-                    writeToLog($value);
-                    break;
-                case 'UF_CRM_1663670733026' :
-                    $contact['UF_CRM_1663670733026'] = $value;
-                    break;
-                case 'UF_CRM_62CD365DB2DED' :
-                    $contact['UF_CRM_62CD365DB2DED'] = $value;
-                    break;
-                case 'UF_CRM_62CD365D51F74' :
-                    $contact['UF_CRM_62CD365D51F74'] = $value;
-                    break;
-                case 'UF_CRM_62CD365DECFE7' :
-                    $contact['UF_CRM_62CD365DECFE7'] = $value;
-                    break;
-                case 'COMMENTS' :
-                    $contact['COMMENTS'] = $value;
-                    break;
-                case 'UF_CRM_629F51D7AE750' :
-                    $contact['UF_CRM_629F51D7AE750'] = $value;
-                    break;
-                case 'UF_CRM_629F51D7F1D30' :
-                    $contact['UF_CRM_629F51D7F1D30'] = $value;
-                    break;
-                case 'UF_CRM_629F51D834666' :
-                    $contact['UF_CRM_629F51D834666'] = $value;
-                    break;
-                case 'UF_CRM_629F51D85F1A7' :
-                    $contact['UF_CRM_629F51D85F1A7'] = $value;
-                    break;
-                case 'UF_CRM_629F51D88AC70' :
-                    $contact['UF_CRM_629F51D88AC70'] = $value;
                     break;
                 case 'UF_CRM_1720601597' :
                     $contact['UF_CRM_1720601597'] = $responseArrayCloud['ID'];
                     break;
-                case 'LEAD_ID' :
-                    $contact['LEAD_ID'] = $value;
+                case 'UF_CRM_5D53E5846CE99' :
+                    $contact['UF_CRM_5D53E5846CE99'] = $this->getFieldListId('UF_CRM_5D53E5846CE99', $value);
                     break;
+                case 'UF_CRM_5D53E5845A238' :
+                    $contact['UF_CRM_5D53E5845A238'] = $this->getFieldListId('UF_CRM_5D53E5845A238', $value);
+                    break;
+                default:
+                    $contact[$key] = $value;
             }
         }
         $contact['UF_CRM_1721830931'] = 'https://stopzaym.bitrix24.ru/crm/contact/details/'.$responseArrayCloud['ID'].'/?any=details%2F31674%2F';
-        $contact['UF_CRM_1722586545'] = 'https://stopzaym.bitrix24.ru/crm/contact/details/'.$responseArrayCloud['ID'].'/?any=details%2F31674%2F';
+
+        if (empty($contact['NAME'])) {
+            if (empty($contact['LAST_NAME'])){
+                $contactDiskFolder  = 'Contact ' . $contact['ID']; //Название папки контакта
+            } else {
+                $contactDiskFolder = 'Contact ' . $contact['ID'] . ' (' . $contact['LAST_NAME'] . ')'; //Название папки контакта
+            }
+        } else {
+            if (empty($contact['LAST_NAME'])){
+                $contactDiskFolder = 'Contact ' . $contact['ID'] . ' (' . $contact['NAME'] . ')'; //Название папки контакта
+            } else {
+                $contactDiskFolder = 'Contact ' . $contact['ID'] . ' (' . $contact['NAME'] . ' ' . $contact['LAST_NAME'] . ')'; //Название папки контакта
+            }
+        }
+
+        $contact['UF_CRM_1722586545'] = $this->issetContactDiskFolder($classBefore, $contactDiskFolder);
 
         return $contact;
     }
@@ -121,7 +80,6 @@ class ContactService
             if (!empty($value)) $fields[$key] = $value;
         }
 
-        writeToLog($contact);
         $methodQuery = QueryHelper::getQuery($classBefore, 'crm.contact.add', [
             'fields' => $fields
         ]);
@@ -149,39 +107,41 @@ class ContactService
                     'ID' => $sqlBeforeId,
             ]);
 
-        if (!array_key_exists('PHONE', $responseArrayBox['result'])) $responseArrayBox['result']['PHONE'][0] = null;
-        if (!array_key_exists('EMAIL', $responseArrayBox['result'])) $responseArrayBox['result']['EMAIL'][0] = null;
-
         $response = [];
         $responsePhone = [];
         $responseEmail = [];
+        
+        if (!array_key_exists('PHONE', $responseArrayBox['result'])) {
+            $responseArrayBox['result']['PHONE'] = $responseArrayCloud['PHONE'];
+        } else {
+            foreach ($responseArrayCloud['PHONE'] as $keyPhoneCloud => $valuePhoneCloud){
+                foreach ($responseArrayBox['result']['PHONE'] as $keyPhoneBox => $valuePhoneBox) {
+                    if ($valuePhoneCloud['VALUE'] != $valuePhoneBox['VALUE'] || empty($valuePhoneBox)) {
+                        $responsePhone[$keyPhoneCloud]['VALUE'] = $valuePhoneCloud['VALUE'];
+                        $responsePhone[$keyPhoneCloud]['VALUE_TYPE'] = $valuePhoneCloud['VALUE_TYPE'];
+                    }
+                }
+            }
+        }
+        if (!array_key_exists('EMAIL', $responseArrayBox['result'])) {
+            $responseArrayBox['result']['EMAIL'] = $responseArrayCloud['EMAIL'];
+        } else {
+            foreach ($responseArrayCloud['EMAIL'] as $keyEmailCloud => $valueEmailCloud){
+                foreach ($responseArrayBox['result']['EMAIL'] as $keyEmailBox => $valueEmailBox) {
+                    if ($valueEmailCloud['VALUE'] != $valueEmailBox['VALUE']) {
+                        $responseEmail[$keyEmailCloud]['VALUE'] = $valueEmailCloud['VALUE'];
+                        $responseEmail[$keyEmailCloud]['VALUE_TYPE'] = $valueEmailCloud['VALUE_TYPE'];
+                    }
+                }
+            }
+        }
+
         foreach ($responseArrayCloud as $keyCloud => $valueCloud) {
             foreach ($responseArrayBox['result'] as $keyBox => $valueBox) {
                 if ($keyCloud === $keyBox
                     && $valueBox != $valueCloud
                     && $keyCloud != 'EMAIL'
                     && $keyCloud != 'PHONE') $response[$keyCloud] = $valueCloud;
-
-                if ($keyCloud === $keyBox && $keyCloud == 'PHONE'){
-                    foreach ($valueCloud as $keyPhoneCloud => $valuePhoneCloud){
-                        foreach ($valueBox as $keyPhoneBox => $valuePhoneBox) {
-                            if ($valuePhoneCloud['VALUE'] != $valuePhoneBox['VALUE'] || empty($valuePhoneBox)) {
-                                $responsePhone[$keyPhoneCloud]['VALUE'] = $valuePhoneCloud['VALUE'];
-                                $responsePhone[$keyPhoneCloud]['VALUE_TYPE'] = $valuePhoneCloud['VALUE_TYPE'];
-                            }
-                        }
-                    }
-                }
-                if ($keyCloud === $keyBox && $keyCloud == 'EMAIL'){
-                    foreach ($valueCloud as $keyEmailCloud => $valueEmailCloud){
-                        foreach ($valueBox as $keyPhoneBox => $valueEmailBox) {
-                            if ($valueEmailCloud['VALUE'] != $valueEmailBox['VALUE']) {
-                                $responseEmail[$keyEmailCloud]['VALUE'] = $valueEmailCloud['VALUE'];
-                                $responseEmail[$keyEmailCloud]['VALUE_TYPE'] = $valueEmailCloud['VALUE_TYPE'];
-                            }
-                        }
-                    }
-                }
             }
         }
         $response['PHONE'] = $responsePhone;
@@ -190,13 +150,59 @@ class ContactService
         return $response;
     }
 
+    public function getFieldListId($ufCrm, $fieldId)
+    {
+        $safeMySQL = new SafeMySQL;
+
+        if (!empty($fieldId)) {
+            $field = $safeMySQL->getRow(
+                "SELECT * FROM user_fields where field_name 
+                = ?s", $ufCrm);
+            $jsonArrayCloud = json_decode($field['cloud_list']);
+            $jsonArrayBox = json_decode($field['box_list']);
+
+            foreach ($jsonArrayCloud as $keyCloud => $valueCloud) {
+                if ($valueCloud->ID == $fieldId) {
+                    foreach ($jsonArrayBox as $keyBox => $valueBox) {
+                        if ($valueBox->VALUE == $valueCloud->VALUE) {
+                            return $valueBox->ID;
+                        }}}}
+        }
+    }
+
+    function issetContactDiskFolder($classBefore, $contactDiskFolder){
+
+        $folder = QueryHelper::getQuery($classBefore,'disk.folder.getchildren', [
+            'id' => 403,
+            'filter' => [
+                'NAME' => $contactDiskFolder
+            ]
+        ]);
+
+        if (empty($folder['result'])){
+            $folder_add = QueryHelper::getQuery($classBefore,'disk.folder.addsubfolder', [
+                'id' => 403,
+                'data' => [
+                    'NAME' => $contactDiskFolder //Вытянуть имя папки
+                ]
+            ]);
+
+            $folder = $folder_add['result'];
+        } else {
+            $folder = $folder['result'][0];
+        }
+
+
+        return $folder['DETAIL_URL'];
+    }
+
     public function updateContact($contact, $classBefore, $sqlBeforeId)
     {
         $fields = [];
         foreach ($contact as $key => $value) {
             if (!empty($value)) $fields[$key] = $value;
         }
-writeToLog($contact);
+
         QueryHelper::getQuery($classBefore, 'crm.contact.update', [
             'id' => $sqlBeforeId,
             'fields' => $fields
