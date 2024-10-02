@@ -110,7 +110,7 @@ class ContactService
         $response = [];
         $responsePhone = [];
         $responseEmail = [];
-        
+
         if (!array_key_exists('PHONE', $responseArrayBox['result'])) {
             $responseArrayBox['result']['PHONE'] = $responseArrayCloud['PHONE'];
         } else {

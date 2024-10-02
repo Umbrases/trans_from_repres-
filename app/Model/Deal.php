@@ -2,84 +2,30 @@
 
 namespace App\Model;
 
+use App\Service\DealService;
+
 class Deal
 {
-
-    private ?string $title;
-    private $comments;
-    private $summaDebt;
-    private ?int $numberDeal;
-    private ?string $judgeFio;
-    private $dateCourt;
-    private Contact $contact;
-
-    public function getTitle(): ?string
+    public function saveDeal(int $dealId, $classFrom, $classBefore): void
     {
-        return $this->title;
-    }
+        $safeMySQL = new SafeMySQL;
+        $dealService = new DealService;
 
-    public function setTitle(?string $title = null): void
-    {
-        $this->title = $title;
-    }
+        $deal = $dealService->getDeal($classFrom, $dealId);
 
-    public function getComments()
-    {
-        return $this->comments;
-    }
+        // Ищем id коробочной сделки
+        $sqlDealId = $safeMySQL->getRow(
+            "SELECT deal_box FROM det_deal where deal_cloud = ?i",
+            $dealId
+        );
 
-    public function setComments($comments): void
-    {
-        $this->comments = $comments;
-    }
-
-    public function getSummaDebt()
-    {
-        return $this->summaDebt;
-    }
-
-    public function setSummaDebt($summaDebt): void
-    {
-        $this->summaDebt = $summaDebt;
-    }
-
-    public function getNumberDeal(): ?int
-    {
-        return $this->numberDeal;
-    }
-
-    public function setNumberDeal(?int $numberDeal = null): void
-    {
-        $this->numberDeal = $numberDeal;
-    }
-
-    public function getJudgeFio(): ?string
-    {
-        return $this->judgeFio;
-    }
-
-    public function setJudgeFio(?string $judgeFio= null): void
-    {
-        $this->judgeFio = $judgeFio;
-    }
-
-    public function getDateCourt()
-    {
-        return $this->dateCourt;
-    }
-
-    public function setDateCourt($dateCourt): void
-    {
-        $this->dateCourt = $dateCourt;
-    }
-
-    public function getContact(): Contact
-    {
-        return $this->contact;
-    }
-
-    public function setContact(Contact $contact): void
-    {
-        $this->contact = $contact;
+        // Если сделка в коробке отсутствует, то создаем сделку
+        if (empty($sqlDealId)) {
+            $dealService->setDeal($classBefore, $deal, $dealId);
+        } else {
+            // ... иначе обновляем ее
+            // Обновление сделки в коробке если она есть
+            $dealService->updateDeal($classBefore, $sqlDealId);
+        }
     }
 }

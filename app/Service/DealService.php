@@ -2,102 +2,53 @@
 
 namespace App\Service;
 
-use App\Model\Contact;
-use App\Model\CRest;
 use App\Model\Deal;
 use App\Model\QueryHelper;
 use App\Model\SafeMySQL;
 
 class DealService
 {
-
-    private QueryHelper $queryHelper;
-
-    private SafeMySQL $safeMySQL;
-
-    public function __construct()
+    public function getDeal($classFrom, $dealId, $sqlBeforeId): Deal
     {
-        $this->queryHelper = new QueryHelper;
-        $this->safeMySQL = new SafeMySQL;
-    }
-    public function getDeal($webHookUrlFrom, $dealId): Deal
-    {
+        //Запрос информации о сделке
+        $responseArrayCloud = QueryHelper::getQuery($classFrom,
+            'crm.deal.get', [
+                'ID' => $dealId,
+            ])['result'];
 
-        //Запрос информации о сделке и клиенте
-        $responseArray = $this->queryHelper->getQueryBatch($webHookUrlFrom, [
-            'deal' => [
-                'method' => 'crm.deal.get',
-                'params' => [
-                    'ID' => $dealId
-                ]
-            ],
-            'contact' => [
-                'method' => 'crm.contact.get',
-                'params' => [
-                    'ID' => '$result[deal][CONTACT_ID]'
-                ]
-            ],
-        ]);
-
-
-        //Сравнение id переменной с городом
-        if($responseArray['result']['result']['contact']['UF_CRM_62D05D7F42F09'] == 53){
-            $responseArray['result']['result']['contact']['UF_CRM_62D05D7F42F09'] = 'Тула';
-        } elseif ($responseArray['result']['result']['contact']['UF_CRM_62D05D7F42F09'] == 55){
-            $responseArray['result']['result']['contact']['UF_CRM_62D05D7F42F09'] = 'Владимир';
-        } else {
-            $responseArray['result']['result']['contact']['UF_CRM_62D05D7F42F09'] = 'Другой (ОНЛАЙН)';
-        }
-
-        return $this->buildDealFromResponseArray($responseArray);
+        return $this->buildDealFromResponseArray($responseArrayCloud);
     }
 
-    public function buildDealFromResponseArray($responseArray): Deal
+    public function buildDealFromResponseArray(array $responseArray)
     {
-        $deal = new Deal;
-        $deal->setTitle($responseArray['result']['result']['deal']['TITLE']);
-        $deal->setComments($responseArray['result']['result']['deal']['COMMENTS']);
-        $deal->setSummaDebt($responseArray['result']['result']['deal']['UF_CRM_6333543AAB9A1']);
-        $deal->setNumberDeal($responseArray['result']['result']['deal']['UF_CRM_1664374736018']);
-        $deal->setJudgeFio($responseArray['result']['result']['deal']['UF_CRM_1664373248467']);
-        $deal->setDateCourt($responseArray['result']['result']['deal']['UF_CRM_1664374644067']);
+        $deal = [];
 
-        $contact = new Contact;
-
-
-
-        $contact->setCity($responseArray['result']['result']['contact']['UF_CRM_62D05D7F42F09']);
-        $contact->setName($responseArray['result']['result']['contact']['NAME']);
-        $contact->setLastName($responseArray['result']['result']['contact']['SECOND_NAME']);
-        $contact->setSecondName($responseArray['result']['result']['contact']['LAST_NAME']);
-        $contact->setPhoneValue($responseArray['result']['result']['contact']['PHONE'][0]['VALUE'] ?? '');
-        $contact->setPhoneValueType($responseArray['result']['result']['contact']['PHONE'][0]['VALUE_TYPE'] ?? '');
-        $contact->setBirthdate($responseArray['result']['result']['contact']['BIRTHDATE']);
-        $contact->setAddress($responseArray['result']['result']['contact']['ADDRESS']);
-        $contact->setEmailValue($responseArray['result']['result']['contact']['EMAIL'][0]['VALUE'] ?? '');
-        $contact->setEmailValueType($responseArray['result']['result']['contact']['EMAIL'][0]['VALUE_TYPE'] ?? '');
-        $contact->setPassportSerial($responseArray['result']['result']['contact']['UF_CRM_6333543A1D22F']);
-        $contact->setPassportNumber($responseArray['result']['result']['contact']['UF_CRM_6333543A1D22F']);
-        $contact->setIssuerWithIssueAt($responseArray['result']['result']['contact']['UF_CRM_6333543A28B78']);
-
-        // Находим и устанавливаем эмитента и дату выдачи по-отдельности
-        $issuerWithIssueAtArray = explode(' ', $contact->getIssuerWithIssueAt());
-        $issuerParts = []; // Массив данных об эмитенте(орган выдачи)
-        foreach($issuerWithIssueAtArray as $key => $value) {
-            //Вытаскиваем дату из массива
-            if (strtotime($value)) {
-                $contact->setIssueAt($value);
-            } else { //Вытаскиваем эмитента
-                $issuerParts[] = $value;
-            }
+        foreach ($responseArray as $key => $value) {
+            $deal[$key] = $value;
+            $deal[$key] = $this->getFieldListId($key, $value);
         }
-        // Собираем части данных об эмитенте обратно в строку
-        $contact->setIssuer(implode(' ', $issuerParts));
-
-        // Сеттим контакт в сделку
-        $deal->setContact($contact);
 
         return $deal;
+    }
+
+    public function getFieldListId($ufCrm, $fieldId)
+    {
+        $safeMySQL = new SafeMySQL;
+
+        if (!empty($fieldId)) {
+            $field = $safeMySQL->getRow(
+                "SELECT * FROM user_fields where field_name 
+                = ?s", $ufCrm);
+            $jsonArrayCloud = json_decode($field['cloud_list']);
+            $jsonArrayBox = json_decode($field['box_list']);
+
+            foreach ($jsonArrayCloud as $keyCloud => $valueCloud) {
+                if ($valueCloud->ID == $fieldId) {
+                    foreach ($jsonArrayBox as $keyBox => $valueBox) {
+                        if ($valueBox->VALUE == $valueCloud->VALUE) {
+                            return $valueBox->ID;
+                        }}}}
+        }
     }
 
     public function setDeal($webHookUrlFrom, Deal $deal, $dealId): void
