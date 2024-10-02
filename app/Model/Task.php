@@ -4,6 +4,7 @@ namespace App\Model;
 
 use App\Service\TaskService;
 use App\Model\QueryHelper;
+use App\Controller\DealController;
 
 class Task
 {
@@ -236,7 +237,10 @@ class Task
             }
         }
 
-        if (empty($sqlDealBeforeId)) return;
+        if (empty($sqlDealBeforeId)) {
+            $dealController = new DealController();
+            $dealController->store($dealId);
+        }
 
         $columnResponsibleId = QueryHelper::getQuery($classBefore,
             'crm.deal.get', [

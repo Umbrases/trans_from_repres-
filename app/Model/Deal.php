@@ -11,21 +11,22 @@ class Deal
         $safeMySQL = new SafeMySQL;
         $dealService = new DealService;
 
-        $deal = $dealService->getDeal($classFrom, $dealId);
-
         // Ищем id коробочной сделки
-        $sqlDealId = $safeMySQL->getRow(
+        $sqlBeforeId = $safeMySQL->getRow(
             "SELECT deal_box FROM det_deal where deal_cloud = ?i",
             $dealId
-        );
+        )['deal_box'];
+        $sqlDeal = "INSERT INTO det_deal SET deal_box = ?i, deal_cloud = ?i";
+
+        $deal = $dealService->getDeal($classFrom, $dealId, $sqlBeforeId, $classBefore);
 
         // Если сделка в коробке отсутствует, то создаем сделку
-        if (empty($sqlDealId)) {
-            $dealService->setDeal($classBefore, $deal, $dealId);
+        if (empty($sqlBeforeId)) {
+            $dealService->setDeal($classBefore, $deal, $sqlDeal);
         } else {
             // ... иначе обновляем ее
             // Обновление сделки в коробке если она есть
-            $dealService->updateDeal($classBefore, $sqlDealId);
+            $dealService->updateDeal($classBefore, $deal, $sqlBeforeId);
         }
     }
 }

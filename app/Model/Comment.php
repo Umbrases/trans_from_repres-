@@ -107,7 +107,7 @@ class Comment
 
             if ($messageObserver || $messageResponsible) return;//Ошибка
         }
-        writeToLog(1);
+
         self::setComment(//Ошибка
             $sqlBeforeId,
             $taskMessage,

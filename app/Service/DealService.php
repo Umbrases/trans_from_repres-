@@ -5,10 +5,13 @@ namespace App\Service;
 use App\Model\Deal;
 use App\Model\QueryHelper;
 use App\Model\SafeMySQL;
+use App\Controller\ContactController;
+use App\Controller\LeadController;
+
 
 class DealService
 {
-    public function getDeal($classFrom, $dealId, $sqlBeforeId): Deal
+    public function getDeal($classFrom, $dealId, $sqlBeforeId, $classBefore)
     {
         //Запрос информации о сделке
         $responseArrayCloud = QueryHelper::getQuery($classFrom,
@@ -16,16 +19,74 @@ class DealService
                 'ID' => $dealId,
             ])['result'];
 
-        return $this->buildDealFromResponseArray($responseArrayCloud);
+        if (empty($sqlBeforeId)) {
+            return $this->buildDealFromResponseArray($responseArrayCloud);
+        } else {
+            $comparisonResult = $this->comparisonDeal($responseArrayCloud, $classBefore, $sqlBeforeId);
+            return $this->buildDealFromResponseArray($comparisonResult);
+        }
+
     }
 
     public function buildDealFromResponseArray(array $responseArray)
     {
+        $safeMySQL = new SafeMySQL;
+
         $deal = [];
 
+        unset($responseArray['UF_CRM_CS_DEAL_MAGNET']);
+        unset($responseArray['UF_CRM_CS_DEAL_CONTACT']);
+
         foreach ($responseArray as $key => $value) {
-            $deal[$key] = $value;
-            $deal[$key] = $this->getFieldListId($key, $value);
+            $field = $safeMySQL->getRow(
+                "SELECT * FROM user_fields where field_name 
+                = ?s", $key);
+            if (empty($field['box_list'])) {
+                if (!empty($value)) {
+                    switch ($key) {
+                        case 'CREATED_BY_ID':
+                        case 'ASSIGNED_BY_ID':
+                        case 'UF_CRM_60A39EE28B65D':
+                        case 'UF_CRM_6090D63B8E837':
+                        case 'UF_CRM_60928641122F4':
+                        case 'UF_CRM_6094E0E6D2B1D':
+                        case 'UF_CRM_6094E0E726214':
+                        case 'UF_CRM_1650611983':
+                            $deal[$key] = $safeMySQL
+                                ->getRow("SELECT `user_box` FROM det_user where `user_cloud` = ?i", $value)['user_box'];
+                            break;
+                        case 'UF_CRM_1721830990' :
+                            $deal[$key] = 'https://stopzaym.bitrix24.ru/crm/deal/details/' . $responseArray['ID'];
+                            break;
+                        case 'CONTACT_ID':
+                            $deal[$key] = $safeMySQL
+                                ->getRow("SELECT `contact_box` FROM det_contact where `contact_cloud` = ?i", $value)['contact_box'];
+                            if (empty($deal[$key])){
+                                $contactController = new ContactController();
+                                $contactController->store($value);
+                            }
+                            break;
+                        case 'LEAD_ID':
+                            $deal[$key] = $safeMySQL
+                                ->getRow("SELECT `lead_box` FROM det_lead where `lead_cloud` = ?i", $value)['lead_box'];
+                            if (empty($deal[$key])){
+                                $leadController = new LeadController();
+                                $leadController->create($value);
+                            }
+                            break;
+                        case 'CATEGORY_ID':
+                            $deal[$key] = $safeMySQL->getRow("SELECT `new_category_id` FROM stages where `old_category_id` = ?i", $value)['new_category_id'];
+                            break;
+                        case 'STAGE_ID':
+                            $deal[$key] = $safeMySQL->getRow("SELECT `new_status_id` FROM stages where `old_status_id` = ?s", $value)['new_status_id'];
+                            break;
+                        default:
+                            $deal[$key] = $value;
+                    }
+                }
+            }else {
+                $deal[$key] = $this->getFieldListId($key, $value);
+            }
         }
 
         return $deal;
@@ -51,71 +112,56 @@ class DealService
         }
     }
 
-    public function setDeal($webHookUrlFrom, Deal $deal, $dealId): void
+    public function comparisonDeal($responseArrayCloud, $classBefore, $sqlBeforeId)
     {
-        $ufaAdd = $this->queryHelper->getQueryBatch($webHookUrlFrom, [
-            'contact' => [
-                'method' => 'crm.contact.add',
-                'params' => [
-                    'fields' => [
-                        'NAME' => $deal->getContact()->getName(),
-                        'SECOND_NAME' => $deal->getContact()->getSecondName(),
-                        'LAST_NAME' => $deal->getContact()->getLastName(),
-                        'PHONE' => [[
-                            'VALUE' => $deal->getContact()->getPhoneValue(),
-                            'VALUE_TYPE' => $deal->getContact()->getPhoneValueType(),
-                        ]],
-                        'BIRTHDATE' => $deal->getContact()->getBirthdate(),
-                        'ADDRESS' => $deal->getContact()->getAddress(),
-                        'EMAIL' => [[
-                            'VALUE' => $deal->getContact()->getEmailValue(),
-                            'VALUE_TYPE' => $deal->getContact()->getEmailValueType(),
-                        ]],
-                        'UF_CRM_629A1B699D519' => $deal->getContact()->getCity(),
-                        'UF_CRM_629F51D7AE750' => $deal->getContact()->getPassportSerial(),
-                        'UF_CRM_629F51D7F1D30' => $deal->getContact()->getPassportNumber(),
-                        'UF_CRM_629F51D834666' => $deal->getContact()->getIssueAt(),
-                        'UF_CRM_629F51D85F1A7' => $deal->getContact()->getIssuer(),
-                    ]
-                ]
-            ],
-            'deal' => [
-                'method' => 'crm.deal.add',
-                'params' => [
-                    'fields' => [
-                        'TITLE' => $deal->getTitle(),
-                        'CONTACT_ID' => '$result[contact]',
-                        'CATEGORY_ID' => 58,
-                        'ASSIGNED_BY_ID' => 208,
-                        'UF_CRM_1701760298' => 1,
-                        'UF_CRM_1653545949629' => $deal->getContact()->getCity(),
-                        'COMMENTS' => $deal->getComments(),
-                        'UF_CRM_5D53E58571DB8' => $deal->getSummaDebt(),
-                        'UF_CRM_1627447542' => $deal->getNumberDeal(),
-                        'UF_CRM_1650372775123' => $deal->getJudgeFio(),
-                        'UF_CRM_1654154788530' => $deal->getDateCourt(),
-                        'UF_CRM_625D560433A58' => 6182,
-                        'UF_CRM_1621386904' => 1,
-                        'TYPE_ID' => 'UC_M0M7LA',
-                        'SOURCE_ID' => 'UC_5IIS3U',
-                    ]
-                ]
-            ],
+        $responseArrayBox = QueryHelper::getQuery($classBefore,
+            'crm.deal.get', [
+                'ID' => $sqlBeforeId,
+            ]);
+
+        $response = [];
+
+        foreach ($responseArrayCloud as $keyCloud => $valueCloud) {
+            foreach ($responseArrayBox['result'] as $keyBox => $valueBox) {
+                if ($keyCloud === $keyBox && $valueBox != $valueCloud) $response[$keyCloud] = $valueCloud;
+            }
+        }
+
+        return $response;
+    }
+
+
+    public function setDeal($classBefore, $deal, $sqlDeal)
+    {
+        $safeMySQL = new SafeMySQL;
+
+        $fields = [];
+        foreach ($deal as $key => $value) {
+            if (!empty($value)) $fields[$key] = $value;
+        }
+
+        $methodQuery = QueryHelper::getQuery($classBefore, 'crm.deal.add', [
+            'fields' => $fields
         ]);
 
         //Запись в бд id сделок
-        $sql_task = "INSERT INTO det_deal SET deal_tula = ?i, deal_ufa = ?i";
-        $this->safeMySQL->query($sql_task, (int)$dealId, (int)$ufaAdd['result']['result']['deal']);
+        $safeMySQL->query($sqlDeal, $methodQuery['result'], $deal['ID']);
     }
 
-    public function updateDeal($webHookUrlFrom, $sqlDealId, $stage)
+    public function updateDeal($classBefore, $deal, $sqlBeforeId)
     {
-        //Обновление информации о сделке
-        return $this->queryHelper->getQuery($webHookUrlFrom, 'crm.deal.update',[
-            'ID' => $sqlDealId,
-            'fields' => [
-                'STAGE_ID' => $stage,
-            ],]);
+        $safeMySQL = new SafeMySQL;
+
+        $fields = [];
+        foreach ($deal as $key => $value) {
+            if (!empty($value)) $fields[$key] = $value;
+        }
+
+        QueryHelper::getQuery($classBefore, 'crm.deal.update', [
+            'id' => $sqlBeforeId,
+            'fields' => $fields
+        ]);
+
     }
 
 }

@@ -4,20 +4,21 @@ namespace App\Controller;
 
 use App\Model\CRestBox;
 use App\Model\CRestCloud;
-use App\Model\TransferDeal;
+use App\Model\Deal;
 
 class DealController
 {
-    private TransferDeal $transferDeal;
+    private Deal $deal;
+
     public function __construct()
     {
-        $this->transferDeal = new TransferDeal;
+        $this->deal = new Deal;
     }
 
     public function store($dealId) {
         $classFrom = CRestCloud::class;
         $classBefore = CRestBox::class;
 
-        $this->transferDeal->saveDeal($dealId, $classFrom, $classBefore);
+        $this->deal->saveDeal($dealId, $classFrom, $classBefore);
     }
 }

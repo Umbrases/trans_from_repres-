@@ -248,12 +248,3 @@ class LeadService
         ])['result'][0]['STATUS_ID'];
     }
 }
-
-function writeToLog($data) {
-    $log = "\n------------------------\n";
-    $log .= date("Y.m.d G:i:s") . "\n";
-    $log .= print_r($data, 1);
-    $log .= "\n------------------------\n";
-    file_put_contents(getcwd() . '/hook.log', $log, FILE_APPEND);
-    return true;
-}
