@@ -9,27 +9,27 @@ use App\Model\SafeMySQL;
 class TaskService
 {
 
-    public function setTask(Task $task, $classBefore, $sqlDealId, $fileTaskId, $tasks, $responsibleId, $createBy, $sqlUpdateTask)
+    public function setTask($task, $classBefore, $sqlDealId, $fileTaskId, $tasks, $responsibleId, $createBy, $sqlUpdateTask)
     {
         $safeMySQL = new SafeMySQL;
 
         $methodQuery = QueryHelper::getQuery($classBefore, 'tasks.task.add', [
             'fields' => [
-                'TITLE' => $task->getTitle(),
-                'DESCRIPTION' => $task->getDescription(),
+                'TITLE' => $task['title'],
+                'DESCRIPTION' => $task['description'],
                 'RESPONSIBLE_ID' => $responsibleId,
                 'CREATED_BY' => $createBy,
                 'UF_CRM_TASK' => ['D_' . $sqlDealId],
-                'START_DATE_PLAN' => $task->getStartDatePlan(),
-                'DEADLINE' => $task->getDeadline(),
+                'START_DATE_PLAN' => $task['startDatePlan'],
+                'DEADLINE' => $task['deadline'],
                 'UF_TASK_WEBDAV_FILES' => $fileTaskId,  //Ошибка
-                'ALLOW_CHANGE_DEADLINE' => $task->getAllowChangeDeadline(),
+                'ALLOW_CHANGE_DEADLINE' => $task['allowChangeDeadline'],
             ],]);
 
         $safeMySQL->query($sqlUpdateTask, (int)$methodQuery['result']['task']['id'], (int)$tasks);
     }
 
-    public function getTask($class, $tasks): Task
+    public function getTask($class, $tasks)
     {
         $responseArray = QueryHelper::getQuery($class, 'tasks.task.get', [
             'taskId' => $tasks,
@@ -41,28 +41,16 @@ class TaskService
         return $this->buildTaskFromResponseArray($responseArray);
     }
 
-    private function buildTaskFromResponseArray(array $responseArray): Task
+    private function buildTaskFromResponseArray(array $responseArray)
     {
-        $task = new Task();
+        $task = [];
 
-        $task->setId($responseArray['result']['task']['id']);
-        if (!empty($responseArray['result']['task']['ufCrmTask'][0])) {
-            $task->setDealId($responseArray['result']['task']['ufCrmTask'][0]);
-        } else {
-            $task->setDealId(null);
+        foreach ($responseArray['result']['task'] as $key => $value) {
+            $task[strtoupper($key)] = match ($key) {
+                'ufCrmTask' => trim($value[0], 'D_'),
+                default => $value,
+            };
         }
-        $task->setResponsibleId($responseArray['result']['task']['responsibleId']);
-        $task->setCreatedBy($responseArray['result']['task']['createdBy']);
-        if (!empty($responseArray['result']['task']['ufTaskWebdavFiles'])) {
-            $task->setTaskFile($responseArray['result']['task']['ufTaskWebdavFiles']);
-        }
-        $task->setDescription($responseArray['result']['task']['description']);
-        $task->setDeadline($responseArray['result']['task']['deadline']);
-        $task->setStartDatePlan($responseArray['result']['task']['startDatePlan']);
-        $task->setChangedBy($responseArray['result']['task']['changedBy']);
-        $task->setStatus($responseArray['result']['task']['status']);
-        $task->setAllowChangeDeadline($responseArray['result']['task']['allowChangeDeadline']);
-        $task->setTitle($responseArray['result']['task']['title']);
 
         return $task;
     }
@@ -79,17 +67,84 @@ class TaskService
         ]);
     }
 
-    public function updateTask(Task $task, $classBefore, $sqlCityId, $fileTaskIds): void
+    public function updateTask($task, $classBefore, $sqlCityId, $fileTaskIds)
     {
+        $fields = [];
+//        writeToLog($task);
+        foreach ($task as $key => $value) {
+//            writeToLog($value);
+            if (!empty($key) || !empty($value)) $fields[$key] = $value;
+        }
+        $fields['UF_TASK_WEBDAV_FILES'] = $fileTaskIds;
+//        writeToLog($fields);
+
         $methodQuery = QueryHelper::getQuery($classBefore, 'tasks.task.update', [
             'taskId' => $sqlCityId,
+            'fields' => $fields
+        ]);
+//        writeToLog($methodQuery);
+        if (!empty($methodQuery['error'])) {
+            echo json_encode($this->error('has'), JSON_UNESCAPED_UNICODE);
+        } else {
+            echo json_encode($this->error('success'), JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    public function getDealVip($classBefore, $dealId)
+    {
+        return QueryHelper::getQuery($classBefore,
+            'crm.deal.get', [
+                'ID' => $dealId,
+            ])['result'];
+    }
+
+    public function updateFieldVip($classBefore, $taskId)
+    {
+        QueryHelper::getQuery($classBefore, 'tasks.task.update', [
+            'taskId' => $taskId,
             'fields' => [
-                'TITLE' => $task->getTitle(),
-                'DESCRIPTION' => $task->getDescription(),
-                'STATUS' => $task->getStatus(),
-                'UF_TASK_WEBDAV_FILES' => $fileTaskIds,  //Ошибка
-                'DEADLINE' => $task->getDeadline(),
+                'UF_AUTO_561710307937' => 1
             ]]);
+    }
+
+    public function getDeviations($taskBox, $taskCloud)
+    {
+        $response = [];
+        foreach ($taskBox as $keyBox => $valueBox) {
+            foreach ($taskCloud as $keyCloud => $valueCloud) {
+//                if ($keyBox === 'id'
+//                    || $keyBox === 'responsibleId'
+//                    || $keyBox === 'createdBy'
+//                    || $keyBox === 'ufCrmTask'
+//                    || $keyBox === 'creator'
+//                    || $keyBox === 'responsible'
+//                    || $keyBox === 'changedBy') continue;
+                if ($keyCloud === $keyBox && $valueBox != $valueCloud
+                    ) $response[$keyBox] = $valueCloud;
+            }
+        }
+
+        return $response;
+    }
+
+    private function error($code): array
+    {
+        $result = [];
+
+        switch ($code) {
+            case 'has':
+                $result = [
+                    'status' => 'error',
+                    'message' => 'Поля пусты'
+                ];
+                break;
+            case 'success':
+                $result = [
+                    'status' => 'success',
+                ];
+        }
+
+        return $result;
     }
 
 }

@@ -3,11 +3,10 @@
 namespace App\Controller;
 
 use App\Model\CRestBox;
-use App\Model\CRestCloud;
 use App\Model\Task;
 
 
-class TasksController
+class TasksVipController
 {
     private Task $task;
 
@@ -18,20 +17,9 @@ class TasksController
 
     public function store(int $taskId): void
     {
-        $classFrom = CRestCloud::class;
         $classBefore = CRestBox::class;
-        $columnFolderId = 502137;
 
-        $this->task->setOnTask($classFrom, $classBefore, $columnFolderId, $taskId);
-    }
-
-    public function storeBox(int $taskId)
-    {
-        header('Content-Type: application/json');
-        $classFrom = CRestBox::class;
-        $classBefore = CRestCloud::class;
-
-        $this->task->updateOnTask($classFrom, $classBefore, $taskId);
+        $this->task->setTaskVip($classBefore, $taskId);
     }
 
 }

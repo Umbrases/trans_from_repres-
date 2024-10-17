@@ -7,6 +7,7 @@ use App\Model\QueryHelper;
 use App\Model\CRestTula;
 use App\Model\CRest;
 use App\Service\TaskService;
+use App\Controller\CommentsController;
 
 class Comment
 {
@@ -21,18 +22,30 @@ class Comment
     public function setComment($sqlId, $taskMessage, $classBefore, $fileId, $tasks, $sqlTask, $authorId): void
     {
         $safeMySQL = new SafeMySQL;
-
+        $userId = $this->getCheckBoxUser($classBefore, $authorId);
         $pregReplace = preg_replace(array('/^\WUSER=\w{2,}\W/', '/\W{2}USER\W/'), '', $taskMessage['POST_MESSAGE']);
         $methodQuery = QueryHelper::getQuery($classBefore, 'task.commentitem.add', [
             'TASKID' => $sqlId,
             'fields' => [
-                'AUTHOR_ID' => $authorId,
+                'AUTHOR_ID' => $userId,
                 'POST_MESSAGE' => '<b>' . $taskMessage['AUTHOR_NAME'] . '</b>: ' . $pregReplace,
                 'UF_FORUM_MESSAGE_DOC' => $fileId,
             ],]);
-        writeToLog($methodQuery);
 
+        writeToLog($methodQuery);
         $safeMySQL->query($sqlTask, (int)$tasks, (int)$sqlId, (int)$taskMessage['ID'], (int)$methodQuery['result']);
+    }
+
+    public static function getCheckBoxUser($classBefore, $userId)
+    {
+        $user = QueryHelper::getQuery($classBefore, 'user.get', ['ID' => $userId]);
+//        print_r($user);
+        if($user['result'][0]['ACTIVE'] == true && !empty($user['result'][0]['ACTIVE'])
+            || $user['result']['ACTIVE'] == true && !empty($user['result']['ACTIVE'])){
+            return $userId;
+        } else {
+            return 1;
+        }
     }
 
     public function getComment($classFrom, $taskId, $itemId)
@@ -48,13 +61,13 @@ class Comment
         $safeMySQL = new SafeMySQL;
         $taskService = new TaskService;
 
-        $sqlFrom = $safeMySQL->getRow("SELECT * FROM det_comment where comment_cloud = ?i", (int)$taskMessage['ID']);
-        $sqlBeforeId = $safeMySQL->getRow("SELECT task_box FROM det_task where task_cloud = ?i", (int)$taskId)['task_box'];
+        $sqlFrom = $safeMySQL->getRow("SELECT * FROM det_comment where `comment_cloud` = ?i", (int)$taskMessage['ID']);
+        $sqlBeforeId = $safeMySQL->getRow("SELECT `task_box` FROM det_task where `task_cloud` = ?i", (int)$taskId)['task_box'];
         $sqlTaskComment = "INSERT INTO det_comment SET task_cloud = ?i, task_box = ?i, comment_cloud = ?i, comment_box = ?i";
         $columnAuthorId = $safeMySQL
-            ->getRow("SELECT `user_box` FROM det_user where `user_cloud` = ?i", $taskMessage['AUTHOR_ID'])['user_box'];
+            ->getRow("SELECT `new_id` FROM users where `old_id` = ?i", $taskMessage['AUTHOR_ID'])['new_id'];
 
-        if (empty($sqlBeforeId['task_box'])) {
+        if (empty($sqlBeforeId)) {
             $taskController = new TasksController();
             $taskController->store($taskId);
         }
@@ -118,13 +131,49 @@ class Comment
             $columnAuthorId
         );
     }
-}
 
-function writeToLog($data) {
-    $log = "\n------------------------\n";
-    $log .= date("Y.m.d G:i:s") . "\n";
-    $log .= print_r($data, 1);
-    $log .= "\n------------------------\n";
-    file_put_contents(getcwd() . '/hook.log', $log, FILE_APPEND);
-    return true;
+    public function updateOnTask($classFrom, $classBefore, $taskId)
+    {
+        $safeMySQL = new SafeMySQL;
+
+        $taskCloudId = $safeMySQL->getRow("SELECT `task_cloud` FROM det_task where task_box = ?i", (int)$taskId)['task_cloud'];
+
+        $commentCloudList = $this->getCommentList($classBefore, $taskCloudId);
+
+        foreach ($commentCloudList as $commentCloud) {
+            $commentBoxId = $safeMySQL->getRow("SELECT `comment_box` FROM det_comment where `comment_cloud` = ?i", $commentCloud['ID'])['comment_box'];
+
+            if (empty($commentBoxId)){
+                $commentController = new CommentsController();
+                $commentController->store($taskCloudId, $commentCloud['ID']);
+            } else {
+                QueryHelper::getQuery($classBefore, 'task.commentitem.update', [
+                    'TASKID' => $taskId,
+                    'ITEMID' => $commentBoxId,
+                    'fields' => $commentCloud]);
+            }
+        }
+    }
+
+    public function getCommentList($class, $taskId)
+    {
+        $safeMySQL = new SafeMySQL;
+
+        $methodQuery = QueryHelper::getQuery($class, 'task.commentitem.getlist', [
+            'TASKID' => $taskId,
+        ]);
+
+        foreach ($methodQuery['result'] as $keyResult => $result) {
+            foreach ($result as $key => $value) {
+                $comment[$keyResult][strtoupper($key)] = match ($key) {
+                    'AUTHOR_ID' => $class == 'App\Model\CRestCloud' ? $safeMySQL->getRow("SELECT `new_id` FROM users where `old_id` = ?i", $value)['new_id'] : $value,
+                    default => $value,
+                };
+            }
+        }
+
+        return $comment;
+    }
+
+
 }

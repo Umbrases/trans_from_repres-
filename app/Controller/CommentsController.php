@@ -27,14 +27,12 @@ class CommentsController
 
         $this->comment->saveComment($classFrom, $classBefore, $taskMessage['result'], $columnFolderId, $taskId);
     }
-}
 
+    public function storeBox($taskId)
+    {
+        $classFrom = CRestBox::class;
+        $classBefore = CRestCloud::class;
 
-function writeToLog($data) {
-    $log = "\n------------------------\n";
-    $log .= date("Y.m.d G:i:s") . "\n";
-    $log .= print_r($data, 1);
-    $log .= "\n------------------------\n";
-    file_put_contents(getcwd() . '/hook.log', $log, FILE_APPEND);
-    return true;
+        $this->comment->updateOnTask($classFrom, $classBefore, $taskId);
+    }
 }

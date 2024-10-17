@@ -26,6 +26,8 @@ class Contact
             if(empty($sqlLead)) {
                 $leadController = new LeadController();
                 $leadController->create($contact['LEAD_ID']);
+                $sqlLead = $safeMySQL
+                    ->getRow("SELECT `lead_box` FROM det_lead where lead_cloud = ?i", $contact['LEAD_ID'])['lead_box'];
             }
         }
 

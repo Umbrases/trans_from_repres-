@@ -33,7 +33,6 @@ class DealService
         $safeMySQL = new SafeMySQL;
 
         $deal = [];
-
         unset($responseArray['UF_CRM_CS_DEAL_MAGNET']);
         unset($responseArray['UF_CRM_CS_DEAL_CONTACT']);
 
@@ -41,6 +40,7 @@ class DealService
             $field = $safeMySQL->getRow(
                 "SELECT * FROM user_fields where field_name 
                 = ?s", $key);
+
             if (empty($field['box_list'])) {
                 if (!empty($value)) {
                     switch ($key) {
@@ -53,14 +53,14 @@ class DealService
                         case 'UF_CRM_6094E0E726214':
                         case 'UF_CRM_1650611983':
                             $deal[$key] = $safeMySQL
-                                ->getRow("SELECT `user_box` FROM det_user where `user_cloud` = ?i", $value)['user_box'];
+                                ->getRow("SELECT `new_id` FROM users where `old_id` = ?i", $value)['user_box'];
                             break;
                         case 'UF_CRM_1721830990' :
                             $deal[$key] = 'https://stopzaym.bitrix24.ru/crm/deal/details/' . $responseArray['ID'];
                             break;
                         case 'CONTACT_ID':
                             $deal[$key] = $safeMySQL
-                                ->getRow("SELECT `contact_box` FROM det_contact where `contact_cloud` = ?i", $value)['contact_box'];
+                                ->getRow("SELECT `new_id` FROM contacts where `old_id` = ?i", $value)['new_id'];
                             if (empty($deal[$key])){
                                 $contactController = new ContactController();
                                 $contactController->store($value);
@@ -68,7 +68,7 @@ class DealService
                             break;
                         case 'LEAD_ID':
                             $deal[$key] = $safeMySQL
-                                ->getRow("SELECT `lead_box` FROM det_lead where `lead_cloud` = ?i", $value)['lead_box'];
+                                ->getRow("SELECT `new_id` FROM leads where `old_id` = ?i", $value)['new_id'];
                             if (empty($deal[$key])){
                                 $leadController = new LeadController();
                                 $leadController->create($value);
@@ -87,6 +87,7 @@ class DealService
             }else {
                 $deal[$key] = $this->getFieldListId($key, $value);
             }
+            //writeToLog($deal);
         }
 
         return $deal;
@@ -135,6 +136,7 @@ class DealService
     {
         $safeMySQL = new SafeMySQL;
 
+//        writeToLog($deal);
         $fields = [];
         foreach ($deal as $key => $value) {
             if (!empty($value)) $fields[$key] = $value;
@@ -164,4 +166,24 @@ class DealService
 
     }
 
+    public function setObserverDeal($classBefore, $observerBox, $sqlBeforeId)
+    {
+        QueryHelper::getQuery($classBefore, 'crm.deal.update', [
+            'id' => $sqlBeforeId,
+            'fields' => [
+                'UF_CRM_1728898409' => $observerBox,
+            ]
+        ]);
+    }
+
+}
+
+function writeToLog($data)
+{
+    $log = "\n------------------------\n";
+    $log .= date("Y.m.d G:i:s") . "\n";
+    $log .= print_r($data, 1);
+    $log .= "\n------------------------\n";
+    file_put_contents(getcwd() . '/hook.log', $log, FILE_APPEND);
+    return true;
 }

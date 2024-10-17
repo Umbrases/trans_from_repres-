@@ -21,4 +21,11 @@ class DealController
 
         $this->deal->saveDeal($dealId, $classFrom, $classBefore);
     }
+
+    public function observerStore($dealId, $observers)
+    {
+        $classBefore = CRestBox::class;
+
+        $this->deal->saveObserverDeal($dealId, $observers, $classBefore);
+    }
 }
